@@ -1,0 +1,931 @@
+<title>SY COMPANY 사무실</title>
+<style>
+:root{
+  --ground:#EBEBF0; --panel:#FFFFFF; --panel-2:#F5F5F9;
+  --ink:#1B1B23; --muted:#6C6C7E; --faint:#9A9AAC;
+  --line:#D6D6E0; --line-soft:#E6E6EE;
+  --accent:#4A4FA0; --accent-soft:#E7E7F4;
+  --floor:#FBFBFD; --corr:#F0F0F6; --wall:#DCDCE6; --wall-edge:#5C5C74;
+  --furn:#C9C9D6; --furn-2:#AEAEC2;
+  --st-done:#3FBE9A; --st-work:#E6B41F; --st-appr:#E0559A; --st-link:#9B8AE0; --st-idle:#F4F4F8;
+  --st-idle-ring:#7C7C92;
+  --shadow:0 1px 2px rgba(20,20,35,.06),0 8px 24px rgba(20,20,35,.07);
+  --sans:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#131319; --panel:#1C1C25; --panel-2:#22222D;
+    --ink:#E9E9F1; --muted:#9A9AAE; --faint:#6E6E82;
+    --line:#2F2F3D; --line-soft:#272733;
+    --accent:#8C90E8; --accent-soft:#2A2A44;
+    --floor:#20202A; --corr:#191922; --wall:#2C2C3A; --wall-edge:#70708C;
+    --furn:#343442; --furn-2:#4A4A5E;
+    --st-done:#5FD3B0; --st-work:#F2C744; --st-appr:#F06AAC; --st-link:#B0A0F0; --st-idle:#E2E2EC;
+    --st-idle-ring:#9A9AB4;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#131319; --panel:#1C1C25; --panel-2:#22222D;
+  --ink:#E9E9F1; --muted:#9A9AAE; --faint:#6E6E82;
+  --line:#2F2F3D; --line-soft:#272733;
+  --accent:#8C90E8; --accent-soft:#2A2A44;
+  --floor:#20202A; --corr:#1A1A23; --wall:#4A4A5E; --furn:#33333F; --furn-2:#3E3E4E;
+  --st-done:#5FD3B0; --st-work:#F2C744; --st-appr:#F06AAC; --st-link:#B0A0F0; --st-idle:#F2F2F8;
+  --st-idle-ring:#7A7A90;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--sans); font-size:14px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1360px; margin:0 auto; padding:22px 20px 40px; display:flex; flex-direction:column; gap:18px}
+
+/* ── 헤더 ── */
+.masthead{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap;
+  border-bottom:1px solid var(--line); padding-bottom:14px}
+.brand{display:flex; flex-direction:column; gap:3px}
+.brand .eyebrow{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
+.brand h1{margin:0; font-size:21px; font-weight:650; letter-spacing:-.01em}
+.masthead .meta{font-family:var(--mono); font-size:11px; color:var(--muted); text-align:right; letter-spacing:.02em}
+
+/* ── 본문 2단 ── */
+.stage{display:grid; grid-template-columns:minmax(0,1fr) 322px; gap:18px; align-items:start}
+@media (max-width:980px){ .stage{grid-template-columns:minmax(0,1fr)} }
+
+.plan{background:var(--panel); border:1px solid var(--line); border-radius:3px; box-shadow:var(--shadow);
+  padding:12px; position:relative}
+.plan canvas{display:block; max-width:100%; height:auto; border-radius:2px; cursor:crosshair}
+.planbar{display:flex; justify-content:space-between; align-items:center; gap:12px;
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--faint); padding:0 2px 9px}
+.planbar .rt{display:flex; gap:14px}
+
+/* ── 우측 레일 ── */
+.rail{display:flex; flex-direction:column; gap:12px; min-width:0}
+.card{background:var(--panel); border:1px solid var(--line); border-radius:3px; box-shadow:var(--shadow); padding:13px 14px}
+.card h2{margin:0 0 10px; font-family:var(--mono); font-size:10.5px; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--faint); font-weight:600}
+
+.clock{display:flex; align-items:baseline; gap:10px}
+.clock .t{font-family:var(--mono); font-size:31px; font-weight:600; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.clock .sp{font-family:var(--mono); font-size:11px; color:var(--muted)}
+.step{margin-top:9px; display:flex; align-items:baseline; gap:8px}
+.step .n{font-family:var(--mono); font-size:12px; color:var(--accent); font-weight:600}
+.step .l{font-size:14.5px; font-weight:600; letter-spacing:-.01em}
+.step-note{margin-top:4px; font-size:12.5px; color:var(--muted); min-height:19px}
+.ticks{display:flex; gap:3px; margin-top:11px}
+.ticks i{flex:1; height:3px; border-radius:2px; background:var(--line-soft); transition:background .3s}
+.ticks i.on{background:var(--accent)}
+.ticks i.cur{background:var(--st-appr)}
+
+.controls{display:flex; flex-wrap:wrap; gap:6px}
+button{font-family:var(--sans); font-size:12.5px; color:var(--ink); background:var(--panel-2);
+  border:1px solid var(--line); border-radius:2px; padding:6px 11px; cursor:pointer; transition:.15s}
+button:hover{border-color:var(--accent); color:var(--accent)}
+button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+button[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#fff}
+button:disabled{opacity:.4; cursor:not-allowed}
+button:disabled:hover{border-color:var(--line); color:var(--ink)}
+.seg{display:flex; gap:0; border:1px solid var(--line); border-radius:2px; overflow:hidden}
+.seg button{border:0; border-radius:0; border-right:1px solid var(--line); padding:6px 9px; font-family:var(--mono); font-size:11px}
+.seg button:last-child{border-right:0}
+
+/* 결재 카드 */
+.approve{border-color:var(--line)}
+.approve.live{border-color:var(--st-appr); box-shadow:0 0 0 3px color-mix(in srgb,var(--st-appr) 16%,transparent),var(--shadow)}
+.approve .who{font-size:12.5px; color:var(--muted); margin:-2px 0 10px}
+.approve .who b{color:var(--ink); font-weight:600}
+.approve .btns{display:grid; grid-template-columns:1fr 1fr; gap:6px}
+.approve.live .btns button:first-child{background:var(--st-appr); border-color:var(--st-appr); color:#fff}
+.approve.live .btns button:first-child:hover{filter:brightness(1.08)}
+.idlemsg{font-size:12.5px; color:var(--faint)}
+
+/* 상태 범례 */
+.legend{display:flex; flex-direction:column; gap:7px}
+.lg{display:grid; grid-template-columns:14px 1fr 26px; align-items:center; gap:9px}
+.sw{width:12px; height:12px; border-radius:50%; border:1px solid rgba(0,0,0,.18)}
+.lg .nm{font-size:12.5px}
+.lg .nm em{font-style:normal; color:var(--faint); font-size:11.5px; margin-left:5px}
+.lg .ct{font-family:var(--mono); font-size:12px; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted)}
+.bars{display:flex; height:5px; border-radius:3px; overflow:hidden; margin-top:10px; background:var(--line-soft)}
+.bars span{transition:width .45s ease}
+
+.anims{display:grid; grid-template-columns:auto 1fr; gap:5px 10px; font-size:12.5px}
+.anims code{font-family:var(--mono); font-size:11px; color:var(--accent); background:var(--accent-soft);
+  padding:1px 5px; border-radius:2px}
+.anims div:nth-child(even){color:var(--muted)}
+
+/* 직원 카드 */
+.who-hd{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap}
+.who-hd .nm{font-size:16px; font-weight:650; letter-spacing:-.01em}
+.who-hd .cd{font-family:var(--mono); font-size:11px; color:var(--accent)}
+.who-hd .tm{font-size:12px; color:var(--muted)}
+.kv{display:grid; grid-template-columns:56px 1fr; gap:4px 10px; margin-top:10px; font-size:12.5px}
+.kv dt{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); padding-top:2px}
+.kv dd{margin:0; font-variant-numeric:tabular-nums}
+.pill{display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600}
+.pill i{width:9px; height:9px; border-radius:50%; border:1px solid rgba(0,0,0,.18)}
+.quote{margin-top:11px; padding-top:10px; border-top:1px dashed var(--line); font-size:12.5px; color:var(--muted); line-height:1.6}
+.quote p{margin:0 0 3px}
+.hint{font-size:12.5px; color:var(--faint)}
+
+footer{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--faint); border-top:1px solid var(--line); padding-top:12px; display:flex;
+  justify-content:space-between; gap:14px; flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){ *{transition-duration:.01ms !important} }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand">
+      <span class="eyebrow">SY COMPANY · 사무실 도면</span>
+      <h1>32명이 걸어다니는 하루</h1>
+    </div>
+    <div class="meta" id="meta">35 × 38 타일 · 직원 32명 · A* 경로 탐색</div>
+  </header>
+
+  <div class="stage">
+    <section class="plan">
+      <div class="planbar">
+        <span id="planTitle">1층 평면도</span>
+        <span class="rt"><span id="walkCt">이동 0</span><span id="pathCt">탐색 0</span><span id="detourCt">우회 0</span></span>
+      </div>
+      <canvas id="cv" role="img" aria-label="사무실 평면도. 직원 32명이 상태별 색으로 표시되어 이동합니다."></canvas>
+    </section>
+
+    <aside class="rail">
+      <div class="card">
+        <h2>진행 상황</h2>
+        <div class="clock"><span class="t" id="clock">07:00</span><span class="sp" id="speedLbl">×1</span></div>
+        <div class="step"><span class="n" id="stepNo">①</span><span class="l" id="stepName">전원 출근</span></div>
+        <div class="step-note" id="stepNote">입구에서 각자 자리로 이동합니다.</div>
+        <div class="ticks" id="ticks"></div>
+      </div>
+
+      <div class="card">
+        <h2>운영</h2>
+        <div class="controls">
+          <button id="btnPlay" aria-pressed="true">일시정지</button>
+          <div class="seg" role="group" aria-label="속도">
+            <button data-sp="1" aria-pressed="true">×1</button>
+            <button data-sp="2" aria-pressed="false">×2</button>
+            <button data-sp="4" aria-pressed="false">×4</button>
+          </div>
+          <button id="btnFocus" aria-pressed="false">집중 모드</button>
+          <button id="btnReset">다시 시작</button>
+        </div>
+      </div>
+
+      <div class="card approve" id="apprCard">
+        <h2>⑦ 대표 결재</h2>
+        <div id="apprBody"><p class="idlemsg">지금은 결재할 안건이 없습니다.</p></div>
+      </div>
+
+      <div class="card">
+        <h2>직원 상태 (5종)</h2>
+        <div class="legend" id="legend"></div>
+        <div class="bars" id="bars"></div>
+      </div>
+
+      <div class="card">
+        <h2>동작 4종</h2>
+        <div class="anims">
+          <div><code>걷기</code></div><div>목적지로 이동 중</div>
+          <div><code>타이핑</code></div><div>자리에서 작업 중</div>
+          <div><code>대화</code></div><div>회의·인수인계·잡담</div>
+          <div><code>앉기</code></div><div>자리에서 대기</div>
+        </div>
+      </div>
+
+      <div class="card" id="whoCard">
+        <h2>직원</h2>
+        <p class="hint">직원을 클릭하면 상태와 목적지를 봅니다.</p>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    <span>경로 탐색 A* · 4방향 · 다른 직원이 선 칸은 장애물</span>
+    <span id="fps">—</span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const MAP = /*__MAP__*/null;
+const LINES = /*__LINES__*/null;
+
+/* ─────────────── 격자 ─────────────── */
+const W = MAP.width, H = MAP.height;
+const G = MAP.tiles.map(r => r.split(""));
+const SOLID = new Set(["#","D","T","S"]);
+const solid = (x,y) => x<0||y<0||x>=W||y>=H || SOLID.has(G[y][x]);
+const solidWall = (x,y) => x<0||y<0||x>=W||y>=H || G[y][x] === "#";
+const key = (x,y) => y*W + x;
+
+/* ─────────────── A* (4방향, 맨해튼) ─────────────── */
+function astar(sx, sy, gx, gy, blocked){
+  if (solid(gx,gy)) return null;
+  const open = [key(sx,sy)];
+  const g = new Map([[key(sx,sy),0]]);
+  const came = new Map();
+  const f = new Map([[key(sx,sy), Math.abs(sx-gx)+Math.abs(sy-gy)]]);
+  const closed = new Set();
+  const goal = key(gx,gy);
+  let guard = 0;
+  while (open.length && guard++ < 9000){
+    let bi = 0;
+    for (let i=1;i<open.length;i++) if (f.get(open[i]) < f.get(open[bi])) bi = i;
+    const cur = open.splice(bi,1)[0];
+    if (cur === goal){
+      const out = []; let c = cur;
+      while (c !== key(sx,sy)){ out.push({x:c%W, y:(c/W)|0}); c = came.get(c); }
+      return out.reverse();
+    }
+    closed.add(cur);
+    const cx = cur%W, cy = (cur/W)|0;
+    const nb = [[cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]];
+    for (const [nx,ny] of nb){
+      if (solid(nx,ny)) continue;
+      const nk = key(nx,ny);
+      if (closed.has(nk)) continue;
+      if (blocked && blocked.has(nk) && nk !== goal) continue;
+      const ng = g.get(cur) + 1;
+      if (g.has(nk) && ng >= g.get(nk)) continue;
+      came.set(nk,cur); g.set(nk,ng);
+      f.set(nk, ng + Math.abs(nx-gx) + Math.abs(ny-gy));
+      if (!open.includes(nk)) open.push(nk);
+    }
+  }
+  return null;
+}
+
+/* ─────────────── 방 · 직원 ─────────────── */
+const rooms = MAP.rooms;
+const roomOf = {};
+rooms.forEach(r => { roomOf[r["방"]] = r; });
+const ENTRY = MAP.entrance;
+
+const STATES = {
+  "완료":     {c:"--st-done", tip:"이번 단계 끝"},
+  "진행 중":  {c:"--st-work", tip:"지금 작업 중"},
+  "승인 대기":{c:"--st-appr", tip:"대표 결정 필요"},
+  "연동 대기":{c:"--st-link", tip:"외부 자료가 없어 멈춤"},
+  "대기":     {c:"--st-idle", tip:"앞 단계를 기다림"}
+};
+const ORDER = ["완료","진행 중","승인 대기","연동 대기","대기"];
+
+const agents = [];
+rooms.forEach(r => {
+  if (r["방"] === "회의실" || r["방"] === "라운지" || r["방"] === "대표실") return;
+  r["자리"].forEach(s => {
+    const m = s["이름"].match(/^([^(]+)(?:\((.+)\))?$/);
+    agents.push({
+      id: agents.length, full: s["이름"], name: m[1], code: m[2] || null, team: r["방"],
+      seat: {x:s["자리"][0], y:s["자리"][1]}, desk: {x:s["책상"][0], y:s["책상"][1]},
+      x: ENTRY[0], y: ENTRY[1], px: ENTRY[0], py: ENTRY[1], prev:{x:ENTRY[0], y:ENTRY[1]},
+      t: 1, path: [], goal: null, state: "대기", anim: "sit", face: "up",
+      stuck: 0, wobble: Math.random()*Math.PI*2, bubble: null, bubT: 0,
+      spawned: false, idleT: 0, wander: false, onArrive: null, repathT: 0
+    });
+  });
+});
+const byName = {};
+agents.forEach(a => { byName[a.name] = a; });
+const team = t => agents.filter(a => a.team === t);
+
+/* 좌석 점유 지도 */
+function occupancy(except){
+  const s = new Set();
+  for (const a of agents){
+    if (a === except || !a.spawned) continue;
+    s.add(key(a.x,a.y));
+    if (a.t < 1) s.add(key(a.prev.x, a.prev.y));
+  }
+  return s;
+}
+
+let pathCalls = 0, detours = 0;
+function sendTo(a, gx, gy, onArrive){
+  a.goal = {x:gx, y:gy}; a.onArrive = onArrive || null;
+  a.wander = false;              // 업무 지시가 내려오면 자율 행동은 그 자리에서 끝난다
+  if (a.x === gx && a.y === gy){ a.path = []; if (a.onArrive){ const f=a.onArrive; a.onArrive=null; f(a);} return true; }
+  pathCalls++;
+  let p = astar(a.x, a.y, gx, gy, occupancy(a));
+  if (!p) p = astar(a.x, a.y, gx, gy, null);   // 사람에 완전히 막히면 일단 직선 경로로 출발해 기다린다
+  a.path = p || [];
+  return !!p;
+}
+
+/* 방 안의 빈 바닥 칸 찾기 */
+function freeTileIn(roomName, avoid){
+  const r = roomOf[roomName], [xa,xb] = r["내부범위"].x, [ya,yb] = r["내부범위"].y;
+  const occ = occupancy(null), out = [];
+  for (let y=ya; y<=yb; y++) for (let x=xa; x<=xb; x++){
+    if (solid(x,y) || occ.has(key(x,y))) continue;
+    if (avoid && avoid.has(key(x,y))) continue;
+    out.push({x,y});
+  }
+  return out.length ? out[(Math.random()*out.length)|0] : null;
+}
+
+/* 회의실 좌석 배분 */
+const meetSeats = roomOf["회의실"]["자리"].map(s => ({x:s["자리"][0], y:s["자리"][1]}));
+function seatMeeting(list){
+  const occ = occupancy(null);
+  const free = meetSeats.filter(s => !occ.has(key(s.x,s.y)));
+  list.forEach((a,i) => { const s = free[i % free.length]; if (s) sendTo(a, s.x, s.y, x => { x.anim="talk"; }); });
+}
+
+/* ─────────────── 이동 ─────────────── */
+const STEP_MS = 300;
+
+/* 한 칸 이동 실행 */
+function move(a, n){
+  a.prev = {x:a.x, y:a.y};
+  a.face = n.x > a.x ? "right" : n.x < a.x ? "left" : n.y > a.y ? "down" : "up";
+  a.x = n.x; a.y = n.y; a.t = 0; a.anim = "walk"; a.stuck = 0;
+  a.path.shift();
+}
+/* 현재 위치에서 목적지까지 다시 계산 (자율 행동 여부는 유지) */
+function repath(a){
+  if (!a.goal) return;
+  const w = a.wander;
+  sendTo(a, a.goal.x, a.goal.y, a.onArrive);
+  a.wander = w;
+}
+/* 옆으로 비켜서기 — 정체를 푸는 마지막 수단 */
+function sidestep(a, occ){
+  const cand = [[a.x+1,a.y],[a.x-1,a.y],[a.x,a.y+1],[a.x,a.y-1]]
+    .filter(([x,y]) => !solid(x,y) && !occ.has(key(x,y)));
+  if (!cand.length) return false;
+  const [x,y] = cand[(Math.random()*cand.length)|0];
+  a.path = [{x,y}];
+  move(a, {x,y});          // move()가 path를 비우므로, 다음 프레임에 목적지로 다시 계산된다
+  a.repathT = 0;
+  return true;
+}
+
+function stepAgents(dt){
+  for (const a of agents){
+    if (!a.spawned) continue;
+    if (a.t < 1){
+      a.t = Math.min(1, a.t + dt / (STEP_MS / speed));
+      a.px = a.prev.x + (a.x - a.prev.x) * ease(a.t);
+      a.py = a.prev.y + (a.y - a.prev.y) * ease(a.t);
+      if (a.t >= 1){ a.px = a.x; a.py = a.y; }
+      continue;
+    }
+    if (!a.path.length){
+      if (a.goal && a.x === a.goal.x && a.y === a.goal.y){
+        const f = a.onArrive; a.onArrive = null; a.goal = null;
+        if (f) f(a); else if (a.anim === "walk") a.anim = "sit";
+      } else if (a.goal){
+        a.repathT -= dt;                       // 비켜선 뒤 등 경로가 끊긴 경우 다시 계산
+        if (a.repathT <= 0){ repath(a); a.repathT = 400; }
+        if (a.anim === "walk") a.anim = "sit";
+      } else if (a.anim === "walk"){ a.anim = "sit"; }
+      continue;
+    }
+    const n = a.path[0];
+    const occ = occupancy(a);
+    if (occ.has(key(n.x,n.y))){
+      const other = agents.find(m => m !== a && m.spawned && m.x === n.x && m.y === n.y);
+      // 정면으로 마주쳤으면 두 사람이 서로 자리를 바꿔 지나간다
+      if (other && other.t >= 1 && other.path.length &&
+          other.path[0].x === a.x && other.path[0].y === a.y){
+        const mine = a.path[0], theirs = other.path[0];
+        move(a, mine); move(other, theirs);
+        continue;
+      }
+      a.stuck++;
+      if (a.anim === "walk") a.anim = "sit";
+      if (a.stuck === 20){                       // ① 사람을 피해 우회로를 찾는다
+        const p = a.goal && astar(a.x, a.y, a.goal.x, a.goal.y, occ);
+        if (p && p.length){ a.path = p; detours++; pathCalls++; a.stuck = 0; }
+      } else if (a.stuck === 60){                // ② 그래도 막히면 옆으로 비켜선다
+        if (sidestep(a, occ)) detours++;
+      } else if (a.stuck > 100){                 // ③ 마지막으로 사람을 무시한 경로로 다시 출발
+        repath(a); a.stuck = 0;
+      }
+      continue;
+    }
+    move(a, n);
+  }
+}
+const ease = t => t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+
+/* ─────────────── 하루 시나리오 ─────────────── */
+const say = (a, i) => { const L = LINES[a.full]; if (L){ a.bubble = L[i % L.length]; a.bubT = 3200; } };
+const setState = (a, s) => { a.state = s; };
+const sitAll = list => list.forEach(a => sendTo(a, a.seat.x, a.seat.y, x => { x.anim = "sit"; }));
+const workAt = (list, st) => list.forEach((a,i) => {
+  setState(a, st || "진행 중");
+  sendTo(a, a.seat.x, a.seat.y, x => { x.anim = (x.state === "진행 중") ? "type" : "sit"; });
+  if (Math.random() < .6) setTimeout(() => say(a, i), 400 + i*900);
+});
+
+/* 연동 대기 — 사규에 기록된 미연동 항목 */
+const LINKWAIT = {"김도윤":"계정 통계 미연동", "양지호":"계정 통계 미연동",
+                  "심우재":"메일 미연동", "노아린":"메일 미연동"};
+function applyLinkWait(){
+  for (const n in LINKWAIT){ const a = byName[n]; setState(a, "연동 대기"); a.linkReason = LINKWAIT[n]; }
+}
+
+let arrivedAll = () => agents.every(a => a.spawned && !a.path.length && a.t >= 1);
+let phase = 0, phaseT = 0, spawnQ = [], spawnT = 0, blocking = false, approvalChoice = null;
+
+const PHASES = [
+ { no:"①", name:"전원 출근", note:"07:00 · 입구에서 각자 자리로 이동합니다.",
+   enter(){ spawnQ = agents.slice().sort(() => Math.random()-.5); },
+   tick(dt){
+     spawnT -= dt;
+     const doorFree = !occupancy(null).has(key(ENTRY[0], ENTRY[1]));
+     if (spawnQ.length && spawnT <= 0 && doorFree){
+       const a = spawnQ.shift(); a.spawned = true; a.state = "대기";
+       sendTo(a, a.seat.x, a.seat.y, x => { x.anim = "sit"; });
+       spawnT = 260;
+     }
+     return !spawnQ.length && arrivedAll();
+   }},
+ { no:"②", name:"시장조사", note:"한지운 팀이 뉴스와 동향을 모읍니다.",
+   enter(){ applyLinkWait(); workAt(team("시장조사팀")); }, dwell:5200 },
+ { no:"②", name:"인수인계 회의", note:"시장조사팀 → 브랜드 분석팀. 회의실에서 한 명씩 한 줄 보고합니다.",
+   enter(){ const g = team("시장조사팀").concat(team("브랜드 분석팀"));
+            g.forEach(a => { if (a.state !== "연동 대기") setState(a, "진행 중"); });
+            seatMeeting(g);
+            g.forEach((a,i) => setTimeout(() => say(a, 1), 1800 + i*1400)); },
+   dwell:8200,
+   exit(){ const g = team("시장조사팀").concat(team("브랜드 분석팀"));
+           sitAll(g);                                  // 연동 대기 직원도 회의가 끝나면 자기 자리로 돌아간다
+           team("시장조사팀").forEach(a => setState(a, "완료")); } },
+ { no:"③", name:"브랜드 분석", note:"김도윤은 계정 통계가 미연동이라 '연동 대기'로 멈춥니다.",
+   enter(){ workAt(team("브랜드 분석팀").filter(a => a.state !== "연동 대기"));
+            team("브랜드 분석팀").filter(a => a.state === "연동 대기").forEach(a => { say(a,0); }); },
+   dwell:5200, exit(){ team("브랜드 분석팀").forEach(a => { if (a.state === "진행 중") setState(a,"완료"); }); } },
+ { no:"④", name:"아이디어 10개", note:"기획 1팀이 소재와 후킹 카피를 냅니다.",
+   enter(){ workAt(team("기획 1팀")); }, dwell:5600 },
+ { no:"⑤", name:"검수", note:"백승호 팀이 근거·중복·톤을 봅니다. 반려 사유를 남깁니다.",
+   enter(){ workAt(team("검수팀")); team("기획 1팀").forEach(a => setState(a,"대기")); }, dwell:5600 },
+ { no:"⑥", name:"TOP 3 선정", note:"기획 1팀장과 검수 팀장이 회의실에서 3개를 고릅니다.",
+   enter(){ const g=[byName["문태현"], byName["백승호"]]; g.forEach(a=>setState(a,"진행 중")); seatMeeting(g);
+            g.forEach((a,i)=>setTimeout(()=>say(a,i),1500+i*1500)); }, dwell:6000 },
+ { no:"⑦", name:"대표 승인 대기", note:"AI는 여기서 멈춥니다. 대표가 누르기 전까지 ⑧로 넘어가지 않습니다.",
+   enter(){ const g=[byName["문태현"], byName["백승호"], byName["정세라"]];
+            g.forEach(a => setState(a,"승인 대기"));
+            seatMeeting(g);
+            g.forEach(a => setTimeout(() => { a.bubble = "확인해주세요"; a.bubT = 999999; }, 1500));
+            blocking = true; renderApproval(g); },
+   tick(){ return approvalChoice !== null; },
+   exit(){ const g=[byName["문태현"], byName["백승호"], byName["정세라"]];
+           g.forEach(a => { a.bubble = null; a.bubT = 0; });
+           blocking = false; renderApproval(null);
+           if (approvalChoice === "승인"){ g.forEach(a => setState(a,"완료")); sitAll(g); }
+           else { g.forEach(a => setState(a,"대기")); sitAll(g); } } },
+ { no:"⑧", name:"대본 작성", note:"기획 2팀이 대본을 쓰고, 조민우가 영상 제작팀에 직접 전달합니다.",
+   enter(){ workAt(team("기획 2팀"));
+            setTimeout(() => { const a = byName["조민우"];
+              const t = freeTileIn("영상 제작팀");
+              if (t) sendTo(a, t.x, t.y, x => { x.anim="talk"; say(byName["남기훈"],0); say(x,0); });
+            }, 3200); },
+   dwell:8000,
+   exit(){ sitAll(team("기획 2팀")); team("기획 2팀").forEach(a=>setState(a,"완료")); } },
+ { no:"⑨", name:"제작 (영상·이미지 동시)", note:"두 제작팀이 동시에 텍스트 정리본을 만듭니다.",
+   enter(){ workAt(team("영상 제작팀")); workAt(team("이미지 제작팀")); }, dwell:6400 },
+ { no:"⑩", name:"결과물 저장 · ⑪ 성과 기록",
+   note:"원본은 건드리지 않고 사본으로 저장합니다. 양지호는 통계 미연동으로 계속 멈춰 있습니다.",
+   enter(){ team("영상 제작팀").concat(team("이미지 제작팀")).forEach(a=>setState(a,"완료"));
+            workAt(team("성과리뷰팀").filter(a => a.state !== "연동 대기")); }, dwell:5600 },
+ { no:"⑫", name:"비서실 브리핑", note:"은수현이 대표실로 이동해 최종 보고합니다.",
+   enter(){ setState(byName["표지우"],"진행 중"); byName["표지우"].anim="type";
+            const a = byName["은수현"]; setState(a,"진행 중");
+            const t = freeTileIn("대표실");
+            if (t) sendTo(a, t.x, t.y, x => { x.anim="talk"; say(x,0); setTimeout(()=>say(x,1),3000); }); },
+   dwell:9000,
+   exit(){ agents.forEach(a => { if (a.state !== "연동 대기") setState(a,"완료"); });
+           sitAll(agents.filter(a => a.state !== "연동 대기")); } },
+ { no:"—", name:"업무 종료", note:"연동 대기 4명을 빼고 전원 완료했습니다. 다시 시작을 누르면 07:00부터 반복합니다.",
+   enter(){}, tick(){ return false; } }
+];
+
+function enterPhase(i){
+  phase = i; phaseT = 0; approvalChoice = null;
+  const p = PHASES[i];
+  if (p.enter) p.enter();
+  ui.stepNo.textContent = p.no; ui.stepName.textContent = p.name; ui.stepNote.textContent = p.note;
+  [...ui.ticks.children].forEach((el,k) => {
+    el.className = k < i ? "on" : (k === i ? (i===7 ? "cur" : "on") : "");
+  });
+}
+function advance(dt){
+  const p = PHASES[phase];
+  phaseT += dt;
+  let done = false;
+  if (p.tick) done = p.tick(dt);
+  else if (p.dwell) done = phaseT > p.dwell;   // 자율 행동으로 걷는 직원이 있어도 단계는 시간으로 넘어간다
+  if (done && phase < PHASES.length - 1){
+    if (p.exit) p.exit();
+    enterPhase(approvalChoice === "폐기" ? PHASES.length-2
+             : approvalChoice === "수정 요청" ? 4 : phase + 1);
+  }
+}
+
+/* 자율 행동 — 할 일 없는 직원만, 집중 모드면 전원 복귀 */
+let focusMode = false;
+function autonomy(dt){
+  if (phase === 0) return;                     // 출근 중에는 딴짓하지 않는다
+  for (const a of agents){
+    if (!a.spawned || a.path.length || a.t < 1) continue;
+    // 집중 모드는 전원 복귀. 단 결재 대기자는 사규 ⑦대로 회의실에 남는다
+    if (focusMode){
+      if (a.state === "승인 대기") continue;
+      if (a.wander || a.x !== a.seat.x || a.y !== a.seat.y)
+        sendTo(a, a.seat.x, a.seat.y, x => { x.anim = (x.state === "진행 중") ? "type" : "sit"; });
+      continue;
+    }
+    if (a.state === "승인 대기" || a.state === "진행 중") continue;
+    a.idleT += dt;
+    if (a.idleT < 5000) continue;
+    a.idleT = 0;
+    const roll = Math.random();
+    if (a.wander){ sendTo(a, a.seat.x, a.seat.y, x => { x.anim = "sit"; }); }
+    else if (roll < .16 && agents.filter(m => m.wander).length < 4){  // ② 휴게 공간 (동시 4명까지)
+      const t = freeTileIn("라운지");
+      if (t){ sendTo(a, t.x, t.y, x => { x.anim = "talk"; say(x, 1); }); a.wander = true; }
+    } else if (roll < .34){                               // ③ 같은 팀원과 짧은 대화
+      const mates = team(a.team).filter(m => m !== a && !m.path.length && m.state !== "진행 중");
+      if (mates.length){ const m = mates[0]; a.anim = "talk"; m.anim = "talk"; say(a,0); setTimeout(()=>say(m,1), 1600); }
+    } else if (roll < .5){ say(a, 0); }                    // ① 혼잣말
+  }
+}
+
+/* ─────────────── 그리기 ─────────────── */
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+let TS = 20, DPR = 1, base = null;
+const C = {};
+function readColors(){
+  const cs = getComputedStyle(document.documentElement);
+  ["--floor","--corr","--wall","--furn","--furn-2","--line","--line-soft","--panel","--ink","--muted","--faint",
+   "--accent","--st-done","--st-work","--st-appr","--st-link","--st-idle","--st-idle-ring","--panel-2"]
+   .forEach(k => C[k] = cs.getPropertyValue(k).trim());
+}
+function fit(){
+  const wrap = cv.parentElement;
+  const avail = wrap.clientWidth - 24;
+  TS = Math.max(9, Math.min(24, Math.floor(avail / W)));
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = W*TS*DPR; cv.height = H*TS*DPR;
+  cv.style.width = (W*TS) + "px"; cv.style.height = (H*TS) + "px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  drawBase();
+}
+function drawBase(){
+  base = document.createElement("canvas");
+  base.width = cv.width; base.height = cv.height;
+  const b = base.getContext("2d");
+  b.setTransform(DPR,0,0,DPR,0,0);
+  b.fillStyle = C["--panel"]; b.fillRect(0,0,W*TS,H*TS);
+
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    const c = G[y][x], X = x*TS, Y = y*TS;
+    if (c === "#"){ b.fillStyle = C["--wall"]; b.fillRect(X,Y,TS,TS); continue; }
+    b.fillStyle = (c === ":" || c === "E") ? C["--corr"] : C["--floor"];
+    b.fillRect(X,Y,TS,TS);
+  }
+  // 바닥 격자 (아주 옅게) — 벽 위에는 긋지 않는다
+  b.strokeStyle = C["--line-soft"]; b.lineWidth = .5;
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    if (G[y][x] === "#") continue;
+    b.strokeRect(x*TS+.25, y*TS+.25, TS, TS);
+  }
+  // 벽선 — 타일을 통째로 칠하는 대신 바닥과 맞닿는 면에만 굵은 선을 긋는다 (도면 표현)
+  b.strokeStyle = C["--wall-edge"]; b.lineWidth = Math.max(1.4, TS*.085); b.lineCap = "square";
+  b.beginPath();
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    if (G[y][x] === "#") continue;
+    const X = x*TS, Y = y*TS;
+    if (solidWall(x, y-1)){ b.moveTo(X, Y); b.lineTo(X+TS, Y); }
+    if (solidWall(x, y+1)){ b.moveTo(X, Y+TS); b.lineTo(X+TS, Y+TS); }
+    if (solidWall(x-1, y)){ b.moveTo(X, Y); b.lineTo(X, Y+TS); }
+    if (solidWall(x+1, y)){ b.moveTo(X+TS, Y); b.lineTo(X+TS, Y+TS); }
+  }
+  b.stroke();
+
+  // 가구
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    const c = G[y][x], X = x*TS, Y = y*TS;
+    if (c === "D"){
+      b.fillStyle = C["--furn"]; b.fillRect(X+1,Y+TS*.25,TS-2,TS*.62);
+      b.strokeStyle = C["--furn-2"]; b.lineWidth = 1; b.strokeRect(X+1.5,Y+TS*.25,TS-3,TS*.62);
+    } else if (c === "T" || c === "S"){
+      b.fillStyle = C["--furn"]; b.fillRect(X,Y+TS*.15,TS,TS*.7);
+      b.strokeStyle = C["--furn-2"]; b.beginPath();
+      b.moveTo(X,Y+TS*.15); b.lineTo(X+TS,Y+TS*.15); b.moveTo(X,Y+TS*.85); b.lineTo(X+TS,Y+TS*.85); b.stroke();
+    } else if (c === "o"){                      // 빈 의자 — 직원과 헷갈리지 않게 아주 옅게
+      b.strokeStyle = C["--faint"]; b.lineWidth = 1; b.globalAlpha = .26;
+      b.beginPath(); b.arc(X+TS/2, Y+TS/2, TS*.22, 0, 7); b.stroke(); b.globalAlpha = 1;
+    } else if (c === "+"){                      // 문 — 도어 스윙 아크
+      const horiz = G[y][x-1] === "#" && G[y][x+1] === "#";
+      b.strokeStyle = C["--wall-edge"]; b.lineWidth = 1.4; b.globalAlpha = .55;
+      b.beginPath();
+      if (horiz) b.arc(X+TS*.1, Y+TS/2, TS*.85, -Math.PI/2.2, Math.PI/2.2);
+      else b.arc(X+TS/2, Y+TS*.1, TS*.85, .18, Math.PI-.18);
+      b.stroke(); b.globalAlpha = 1;
+    } else if (c === "E"){
+      b.fillStyle = C["--accent"]; b.globalAlpha = .16; b.fillRect(X,Y,TS,TS); b.globalAlpha = 1;
+      b.fillStyle = C["--accent"]; b.font = `600 ${Math.max(8,TS*.5)}px ${getComputedStyle(document.body).fontFamily}`;
+      b.textAlign = "center"; b.textBaseline = "middle"; b.fillText("↑", X+TS/2, Y+TS/2);
+    }
+  }
+  // 방 이름표
+  b.textAlign = "left"; b.textBaseline = "top";
+  rooms.forEach(r => {
+    const [xa] = r["내부범위"].x, [ya] = r["내부범위"].y;
+    const cap = Math.max(7, Math.min(11, TS*.5));
+    b.fillStyle = C["--faint"];
+    b.font = `600 ${cap}px ui-monospace, Menlo, monospace`;
+    b.fillText(r["방"], xa*TS + 2, ya*TS - cap - 3.5);
+  });
+  // 좌표 눈금
+  b.fillStyle = C["--faint"]; b.font = `9px ui-monospace, Menlo, monospace`;
+  if (TS >= 14){
+    for (let x=0;x<W;x+=5){ b.textAlign="center"; b.fillText(x, x*TS+TS/2, 1); }
+    for (let y=0;y<H;y+=5){ b.textAlign="left"; b.textBaseline="middle"; b.fillText(y, 2, y*TS+TS/2); }
+  }
+}
+
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let hover = null, selected = null, tms = 0;
+
+function drawAgent(a){
+  const X = a.px*TS, Y = a.py*TS, cx = X+TS/2;
+  const col = C[STATES[a.state].c];
+  const walking = a.anim === "walk";
+  const bob = (walking && !reduce) ? Math.sin(tms/95 + a.wobble)*TS*.055 : 0;
+  const breathe = (!reduce && a.anim === "sit") ? Math.sin(tms/700 + a.wobble)*TS*.012 : 0;
+  const cy = Y + TS*.56 + bob + breathe;
+  const rBody = TS*.235, rHead = TS*.145;
+
+  if (a === selected || a === hover){
+    ctx.beginPath(); ctx.arc(cx, cy, TS*.52, 0, 7);
+    ctx.fillStyle = C["--accent"]; ctx.globalAlpha = .16; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = C["--accent"]; ctx.lineWidth = 1.2; ctx.stroke();
+  }
+  // 다리 (걷기)
+  if (walking){
+    const sw = Math.sin(tms/95 + a.wobble) * TS*.13;
+    ctx.strokeStyle = col; ctx.lineWidth = Math.max(1.4, TS*.075); ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(cx-TS*.07, cy+rBody*.55); ctx.lineTo(cx-TS*.07+sw, cy+rBody*1.25);
+    ctx.moveTo(cx+TS*.07, cy+rBody*.55); ctx.lineTo(cx+TS*.07-sw, cy+rBody*1.25);
+    ctx.stroke();
+  }
+  // 바닥 그림자 — 흰색(대기) 직원이 바닥에 묻히지 않게
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + rBody*1.35, rBody*.9, rBody*.32, 0, 0, 7);
+  ctx.fillStyle = "rgba(0,0,0,.16)"; ctx.fill();
+  // 몸통
+  ctx.beginPath();
+  ctx.ellipse(cx, cy+rBody*.25, rBody, rBody*1.05, 0, 0, 7);
+  ctx.fillStyle = col; ctx.fill();
+  ctx.strokeStyle = a.state === "대기" ? C["--st-idle-ring"] : "rgba(0,0,0,.32)";
+  ctx.lineWidth = a.state === "대기" ? 1.3 : 1; ctx.stroke();
+  // 머리
+  const hy = cy - rBody*.95 + (a.anim === "talk" && !reduce ? Math.sin(tms/260 + a.wobble)*TS*.03 : 0);
+  ctx.beginPath(); ctx.arc(cx, hy, rHead, 0, 7);
+  ctx.fillStyle = col; ctx.fill(); ctx.stroke();
+
+  // 타이핑 — 책상 쪽으로 뻗은 손이 두드린다
+  if (a.anim === "type" && TS >= 12){
+    const tick = reduce ? 0 : (Math.sin(tms/110 + a.wobble) > 0 ? 1 : 0);
+    ctx.fillStyle = C["--ink"]; ctx.globalAlpha = .55;
+    ctx.fillRect(cx-TS*.19, cy-rBody*.15 - tick*TS*.06, TS*.13, TS*.07);
+    ctx.fillRect(cx+TS*.06, cy-rBody*.15 - (1-tick)*TS*.06, TS*.13, TS*.07);
+    ctx.globalAlpha = 1;
+  }
+  // 앉기 — 의자 등받이 선
+  if (a.anim === "sit" && TS >= 12){
+    ctx.strokeStyle = C["--faint"]; ctx.globalAlpha = .45; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx-rBody, cy+rBody*1.3); ctx.lineTo(cx+rBody, cy+rBody*1.3); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // 대화 — 입가 점 깜빡임
+  if (a.anim === "talk" && !reduce){
+    const on = Math.sin(tms/180 + a.wobble) > 0;
+    ctx.beginPath(); ctx.arc(cx, hy+rHead*.35, on ? TS*.045 : TS*.02, 0, 7);
+    ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fill();
+  }
+}
+
+let bubbleRects = [];
+function drawBubble(a){
+  if (!a.bubble || TS < 13) return;
+  const pad = 7, fs = Math.max(9, Math.min(11.5, TS*.52)), maxW = Math.min(210, W*TS - 8);
+  ctx.font = `${fs}px ${getComputedStyle(document.body).fontFamily}`;
+  let txt = a.bubble;
+  if (ctx.measureText(txt).width + pad*2 > maxW){        // 실제 글자 폭으로 잘라야 한글이 안 잘린다
+    while (txt.length > 1 && ctx.measureText(txt + "…").width + pad*2 > maxW) txt = txt.slice(0, -1);
+    txt += "…";
+  }
+  const w = ctx.measureText(txt).width + pad*2;
+  const h = fs + pad*1.6;
+  let bx = a.px*TS + TS/2 - w/2, by = a.py*TS - h - 5;
+  bx = Math.max(2, Math.min(W*TS - w - 2, bx));
+  if (by < 2) by = a.py*TS + TS + 3;
+  // 말풍선끼리 겹치면 뒤엣것은 그리지 않는다 (글자가 포개져 읽히지 않으므로)
+  if (bubbleRects.some(r => bx < r.x + r.w && bx + w > r.x && by < r.y + r.h && by + h > r.y)) return;
+  bubbleRects.push({x:bx, y:by, w, h});
+  ctx.fillStyle = C["--panel"]; ctx.strokeStyle = C["--line"]; ctx.lineWidth = 1;
+  roundRect(bx, by, w, h, 3); ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(a.px*TS+TS/2-3.5, by+h); ctx.lineTo(a.px*TS+TS/2+3.5, by+h); ctx.lineTo(a.px*TS+TS/2, by+h+4.5);
+  ctx.closePath(); ctx.fillStyle = C["--panel"]; ctx.fill();
+  ctx.fillStyle = C["--ink"]; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(txt, bx + w/2, by + h/2);
+}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+function drawPathOf(a){
+  if (!a || !a.path.length) return;
+  ctx.strokeStyle = C["--accent"]; ctx.lineWidth = 1.6; ctx.globalAlpha = .55;
+  ctx.setLineDash([3,3]); ctx.beginPath();
+  ctx.moveTo(a.px*TS+TS/2, a.py*TS+TS/2);
+  a.path.forEach(p => ctx.lineTo(p.x*TS+TS/2, p.y*TS+TS/2));
+  ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+  const g = a.goal;
+  if (g){
+    ctx.strokeStyle = C["--accent"]; ctx.lineWidth = 1.4;
+    ctx.strokeRect(g.x*TS+2, g.y*TS+2, TS-4, TS-4);
+  }
+}
+
+function render(){
+  ctx.clearRect(0,0,W*TS,H*TS);
+  ctx.drawImage(base, 0,0, W*TS, H*TS);
+  // 회의실 강조 (승인 대기 중)
+  if (blocking && !reduce){
+    const r = roomOf["회의실"], [xa,xb] = r["내부범위"].x, [ya,yb] = r["내부범위"].y;
+    ctx.strokeStyle = C["--st-appr"]; ctx.lineWidth = 2;
+    ctx.globalAlpha = .35 + Math.sin(tms/420)*.3;
+    ctx.strokeRect(xa*TS-2, ya*TS-2, (xb-xa+1)*TS+4, (yb-ya+1)*TS+4);
+    ctx.globalAlpha = 1;
+  }
+  drawPathOf(selected);
+  const sorted = agents.filter(a=>a.spawned).sort((p,q) => p.py - q.py);
+  sorted.forEach(drawAgent);
+  bubbleRects = [];
+  if (selected && selected.bubble) drawBubble(selected);   // 선택한 직원 말풍선이 항상 우선
+  sorted.forEach(drawBubble);
+}
+
+/* ─────────────── UI ─────────────── */
+const ui = {
+  clock:document.getElementById("clock"), stepNo:document.getElementById("stepNo"),
+  stepName:document.getElementById("stepName"), stepNote:document.getElementById("stepNote"),
+  ticks:document.getElementById("ticks"), legend:document.getElementById("legend"),
+  bars:document.getElementById("bars"), who:document.getElementById("whoCard"),
+  appr:document.getElementById("apprCard"), apprBody:document.getElementById("apprBody"),
+  walkCt:document.getElementById("walkCt"), pathCt:document.getElementById("pathCt"),
+  detourCt:document.getElementById("detourCt"), speedLbl:document.getElementById("speedLbl"),
+  fps:document.getElementById("fps")
+};
+PHASES.forEach(() => ui.ticks.appendChild(document.createElement("i")));
+ORDER.forEach(s => {
+  const row = document.createElement("div"); row.className = "lg";
+  row.innerHTML = `<span class="sw" style="background:var(${STATES[s].c})"></span>
+    <span class="nm">${s}<em>${STATES[s].tip}</em></span><span class="ct" data-ct="${s}">0</span>`;
+  ui.legend.appendChild(row);
+  const bar = document.createElement("span");
+  bar.style.background = `var(${STATES[s].c})`; bar.dataset.bar = s; bar.style.width = "0%";
+  ui.bars.appendChild(bar);
+});
+
+function renderApproval(list){
+  ui.appr.classList.toggle("live", !!list);
+  if (!list){ ui.apprBody.innerHTML = `<p class="idlemsg">지금은 결재할 안건이 없습니다.</p>`; return; }
+  ui.apprBody.innerHTML =
+    `<p class="who">회의실에서 <b>${list.length}명</b>이 기다립니다 —
+     ${list.map(a=>a.name).join(" · ")}. 누르기 전까지 ⑧로 넘어가지 않습니다.</p>
+     <div class="btns">
+       <button data-ap="승인">승인</button><button data-ap="수정 요청">수정 요청</button>
+       <button data-ap="보류">보류</button><button data-ap="폐기">폐기</button>
+     </div>`;
+  ui.apprBody.querySelectorAll("[data-ap]").forEach(b =>
+    b.onclick = () => { approvalChoice = b.dataset.ap;
+      if (approvalChoice === "보류"){                 // 보류는 결재를 끝내지 않는다 — 안건이 그대로 남는다
+        approvalChoice = null;
+        ui.stepNote.textContent = "보류했습니다. 담당자는 자리로 돌아가 대기하고, 안건은 그대로 남습니다.";
+        const g = [byName["문태현"], byName["백승호"], byName["정세라"]];
+        g.forEach(a => { a.bubble = null; a.bubT = 0; a.state = "대기"; });
+        sitAll(g);
+        return;
+      }
+      ui.stepNote.textContent = `대표 결정: ${approvalChoice}`; });
+}
+
+function renderWho(a){
+  if (!a){ ui.who.innerHTML = `<h2>직원</h2><p class="hint">직원을 클릭하면 상태와 목적지를 봅니다.</p>`; return; }
+  const L = LINES[a.full] || [];
+  const dest = a.goal ? `(${a.goal.x}, ${a.goal.y})` : "—";
+  ui.who.innerHTML = `<h2>직원</h2>
+    <div class="who-hd"><span class="nm">${a.name}</span>
+      ${a.code ? `<span class="cd">${a.code}</span>` : ""}<span class="tm">${a.team}</span></div>
+    <dl class="kv">
+      <dt>상태</dt><dd><span class="pill"><i style="background:var(${STATES[a.state].c})"></i>${a.state}</span></dd>
+      <dt>동작</dt><dd>${({walk:"걷기",type:"타이핑",talk:"대화",sit:"앉기"})[a.anim]}</dd>
+      <dt>현위치</dt><dd>(${a.x}, ${a.y})</dd>
+      <dt>목적지</dt><dd>${dest}${a.path.length ? ` · ${a.path.length}칸 남음` : ""}</dd>
+      <dt>자리</dt><dd>(${a.seat.x}, ${a.seat.y})</dd>
+      ${a.state === "연동 대기" ? `<dt>사유</dt><dd>${a.linkReason || "외부 연결 없음"}</dd>` : ""}
+    </dl>
+    <div class="quote">${L.map(l=>`<p>“${l}”</p>`).join("")}</div>`;
+}
+
+let speed = 1, playing = true;
+document.getElementById("btnPlay").onclick = e => {
+  playing = !playing; e.target.textContent = playing ? "일시정지" : "재생";
+  e.target.setAttribute("aria-pressed", playing);
+};
+document.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => {
+  speed = +b.dataset.sp; ui.speedLbl.textContent = "×" + speed;
+  document.querySelectorAll("[data-sp]").forEach(o => o.setAttribute("aria-pressed", o === b));
+});
+document.getElementById("btnFocus").onclick = e => {
+  focusMode = !focusMode; e.target.setAttribute("aria-pressed", focusMode);
+  ui.stepNote.textContent = focusMode
+    ? "집중 모드 — 자율 행동을 중단하고 전원 자리로 복귀합니다."
+    : PHASES[phase].note;
+};
+document.getElementById("btnReset").onclick = () => reset();
+
+function reset(){
+  agents.forEach(a => {
+    a.x = ENTRY[0]; a.y = ENTRY[1]; a.px = a.x; a.py = a.y; a.prev = {x:a.x,y:a.y};
+    a.t = 1; a.path = []; a.goal = null; a.state = "대기"; a.anim = "sit";
+    a.spawned = false; a.bubble = null; a.bubT = 0; a.wander = false; a.idleT = 0;
+    a.linkReason = null; a.stuck = 0; a.onArrive = null;
+  });
+  simMin = 0; pathCalls = 0; detours = 0; blocking = false; approvalChoice = null;
+  selected = null; renderWho(null); renderApproval(null);
+  enterPhase(0);
+}
+
+cv.addEventListener("mousemove", e => {
+  const r = cv.getBoundingClientRect();
+  const sc = r.width / (W * TS);                // 화면이 좁아 캔버스가 축소된 경우 보정
+  const x = (e.clientX - r.left) / (TS * sc), y = (e.clientY - r.top) / (TS * sc);
+  hover = agents.find(a => a.spawned && Math.abs(a.px+.5-x) < .6 && Math.abs(a.py+.6-y) < .75) || null;
+  cv.style.cursor = hover ? "pointer" : "crosshair";
+});
+cv.addEventListener("mouseleave", () => { hover = null; });
+cv.addEventListener("click", () => { if (hover){ selected = hover; renderWho(selected); } });
+
+/* ─────────────── 루프 ─────────────── */
+let simMin = 0, last = performance.now(), fpsT = 0, fpsN = 0, whoT = 0;
+function loop(now){
+  const raw = Math.min(50, now - last); last = now;
+  const dt = raw * speed;
+  tms += raw * speed;
+  if (playing){
+    simMin += dt / 1000 * 3;
+    stepAgents(dt);
+    advance(dt);
+    autonomy(dt);
+    for (const a of agents){ if (a.bubT > 0){ a.bubT -= dt; if (a.bubT <= 0) a.bubble = null; } }
+  }
+  const hh = 7 + Math.floor(simMin/60), mm = Math.floor(simMin%60);
+  ui.clock.textContent = String(hh).padStart(2,"0") + ":" + String(mm).padStart(2,"0");
+
+  const counts = {}; ORDER.forEach(s => counts[s] = 0);
+  let walking = 0;
+  agents.forEach(a => { counts[a.state]++; if (a.anim === "walk") walking++; });
+  ORDER.forEach(s => {
+    document.querySelector(`[data-ct="${s}"]`).textContent = counts[s];
+    document.querySelector(`[data-bar="${s}"]`).style.width = (counts[s]/agents.length*100) + "%";
+  });
+  ui.walkCt.textContent = "이동 " + walking;
+  ui.pathCt.textContent = "탐색 " + pathCalls;
+  ui.detourCt.textContent = "우회 " + detours;
+  whoT += raw;                                  // 카드는 초당 5번만 다시 그린다 (매 프레임 재생성 금지)
+  if (selected && whoT > 200){ renderWho(selected); whoT = 0; }
+
+  render();
+  fpsN++; fpsT += raw;
+  if (fpsT > 700){ ui.fps.textContent = Math.round(fpsN/fpsT*1000) + " FPS"; fpsN = 0; fpsT = 0; }
+  requestAnimationFrame(loop);
+}
+
+readColors(); fit(); enterPhase(0); requestAnimationFrame(loop);
+addEventListener("resize", () => { readColors(); fit(); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readColors(); drawBase(); });
+new MutationObserver(() => { readColors(); drawBase(); })
+  .observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+</script>

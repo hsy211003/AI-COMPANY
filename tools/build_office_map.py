@@ -3,15 +3,15 @@
 """SY COMPANY 사무실 타일 맵 생성기 + 연결성 검증"""
 from collections import deque
 
-W, H = 35, 34
+W, H = 35, 38
 WALL, FLOOR, CORR, DOOR = '#', '.', ':', '+'
 DESK, SEAT, TABLE, SOFA, ENTRY = 'D', 'o', 'T', 'S', 'E'
 BLOCKING = {WALL, DESK, TABLE, SOFA}
 
-BANDS = {'A': 1, 'B': 8, 'C': 15, 'D': 22, 'E': 29}   # 각 밴드 내부 4행
+BANDS = {'A': 1, 'B': 9, 'C': 17, 'D': 25, 'E': 33}   # 각 밴드 내부 4행
 COLS = {1: 1, 2: 11, 3: 21}                            # 각 열 내부 9칸
 VCORR = (31, 33)                                       # 세로 복도 x범위
-CORR_ROWS = [6, 13, 20, 27]                            # 가로 복도 y
+CORR_ROWS = [6, 7, 14, 15, 22, 23, 30, 31]             # 가로 복도 y (2칸 폭)
 
 # (밴드, 열, 방이름, 인원명단)  — 밴드 A~D는 문이 아래벽, E는 문이 위벽
 ROOMS = [
@@ -46,7 +46,7 @@ for y in CORR_ROWS:
         grid[y][x] = CORR
 
 # 3) 세로 복도
-for y in range(1, 33):
+for y in range(1, H - 1):
     for x in range(VCORR[0], VCORR[1] + 1):
         grid[y][x] = CORR
 
