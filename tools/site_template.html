@@ -1,0 +1,468 @@
+<title>SY COMPANY 자료실</title>
+<style>
+:root{
+  --ground:#EBEBF0; --panel:#FFFFFF; --panel-2:#F5F5F9;
+  --ink:#1B1B23; --muted:#6C6C7E; --faint:#9A9AAC;
+  --line:#D6D6E0; --line-soft:#E6E6EE;
+  --accent:#4A4FA0; --accent-soft:#E7E7F4;
+  --st-done:#3FBE9A; --st-work:#E6B41F; --st-appr:#E0559A; --st-link:#9B8AE0;
+  --shadow:0 1px 2px rgba(20,20,35,.06),0 8px 24px rgba(20,20,35,.07);
+  --sans:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#131319; --panel:#1C1C25; --panel-2:#22222D;
+    --ink:#E9E9F1; --muted:#9A9AAE; --faint:#6E6E82;
+    --line:#2F2F3D; --line-soft:#272733;
+    --accent:#8C90E8; --accent-soft:#2A2A44;
+    --st-done:#5FD3B0; --st-work:#F2C744; --st-appr:#F06AAC; --st-link:#B0A0F0;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#131319; --panel:#1C1C25; --panel-2:#22222D;
+  --ink:#E9E9F1; --muted:#9A9AAE; --faint:#6E6E82;
+  --line:#2F2F3D; --line-soft:#272733;
+  --accent:#8C90E8; --accent-soft:#2A2A44;
+  --st-done:#5FD3B0; --st-work:#F2C744; --st-appr:#F06AAC; --st-link:#B0A0F0;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--ground); color:var(--ink); font-family:var(--sans);
+  font-size:14px; line-height:1.55; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px; margin:0 auto; padding:22px 20px 48px; display:flex; flex-direction:column; gap:18px}
+
+.masthead{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap;
+  border-bottom:1px solid var(--line); padding-bottom:14px}
+.brand .eyebrow{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--faint); display:block; margin-bottom:3px}
+.brand h1{margin:0; font-size:21px; font-weight:650; letter-spacing:-.01em}
+.masthead .meta{font-family:var(--mono); font-size:11px; color:var(--muted); text-align:right}
+
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px}
+.stat{background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:11px 13px; box-shadow:var(--shadow)}
+.stat .k{font-family:var(--mono); font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--faint)}
+.stat .v{font-family:var(--mono); font-size:23px; font-weight:600; font-variant-numeric:tabular-nums; margin-top:3px}
+.stat .v small{font-size:12px; font-weight:400; color:var(--muted); margin-left:3px}
+
+.card{background:var(--panel); border:1px solid var(--line); border-radius:3px;
+  box-shadow:var(--shadow); padding:15px 16px}
+.card > h2{margin:0 0 12px; font-family:var(--mono); font-size:10.5px; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--faint); font-weight:600}
+
+.browser{display:grid; grid-template-columns:320px minmax(0,1fr); gap:14px; align-items:start}
+@media (max-width:900px){ .browser{grid-template-columns:minmax(0,1fr)} }
+
+.tree{max-height:560px; overflow-y:auto; padding-right:4px}
+.tteam{border-bottom:1px solid var(--line-soft); padding:2px 0}
+.tteam:last-child{border-bottom:0}
+.trow{display:flex; align-items:center; gap:7px; width:100%; text-align:left; background:none;
+  border:0; padding:6px 4px; cursor:pointer; color:var(--ink); font-family:var(--sans); font-size:13px; border-radius:2px}
+.trow:hover{background:var(--panel-2)}
+.trow:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.trow .car{font-family:var(--mono); font-size:9px; color:var(--faint); width:9px; flex:none}
+.trow .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.trow .ct{font-family:var(--mono); font-size:10.5px; color:var(--faint); font-variant-numeric:tabular-nums}
+.tteam > .trow{font-weight:650}
+.tmem{padding-left:16px}
+.tmem .trow{font-size:12.5px}
+.tmem .role{color:var(--faint); font-size:11px; margin-left:5px}
+.tdoc{padding-left:32px}
+.tdoc button{font-size:12px; color:var(--muted)}
+.tdoc button.on{color:var(--accent); font-weight:600}
+.dot{width:7px; height:7px; border-radius:50%; flex:none; border:1px solid rgba(0,0,0,.15)}
+
+.doc h3{margin:0 0 3px; font-size:17px; font-weight:650; letter-spacing:-.01em}
+.doc .crumb{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--faint); margin-bottom:9px}
+.doc .body{white-space:pre-wrap; font-size:13.5px; line-height:1.7}
+.doc .body ul{margin:6px 0; padding-left:18px}
+.doc .when{margin-top:12px; padding-top:10px; border-top:1px dashed var(--line);
+  font-family:var(--mono); font-size:11px; color:var(--faint)}
+.empty{color:var(--faint); font-size:13px; padding:26px 4px; text-align:center}
+
+.teams{display:grid; grid-template-columns:repeat(auto-fill,minmax(268px,1fr)); gap:12px}
+.tbox{border:1px solid var(--line); border-radius:3px; background:var(--panel-2); padding:11px 12px;
+  display:flex; flex-direction:column; gap:8px}
+.tbox h3{margin:0; font-size:13.5px; font-weight:650; display:flex; align-items:center; gap:7px}
+.tbox h3 .lead{font-family:var(--mono); font-size:10.5px; color:var(--faint); font-weight:400}
+.tbox textarea{width:100%; min-height:52px; resize:vertical; font-family:var(--sans); font-size:12.5px;
+  color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:2px; padding:6px 8px}
+.tbox textarea:focus{outline:2px solid var(--accent); outline-offset:1px}
+.drop{border:1px dashed var(--line); border-radius:2px; padding:9px; text-align:center;
+  font-size:12px; color:var(--faint); cursor:pointer; background:var(--panel)}
+.drop.over{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+.tbox .feed{display:flex; flex-direction:column; gap:5px; font-size:12px}
+.tbox .feed .it{display:flex; gap:6px; align-items:baseline}
+.tbox .feed .it .t{font-family:var(--mono); font-size:10px; color:var(--faint); flex:none}
+.tbox .feed .it .x{flex:1; min-width:0; word-break:break-word}
+.tbox .feed .none{color:var(--faint)}
+
+button{font-family:var(--sans); font-size:12.5px; color:var(--ink); background:var(--panel-2);
+  border:1px solid var(--line); border-radius:2px; padding:6px 11px; cursor:pointer}
+button:hover{border-color:var(--accent); color:var(--accent)}
+button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+button.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+button.primary:hover{filter:brightness(1.08); color:#fff}
+.row{display:flex; gap:7px; flex-wrap:wrap; align-items:center}
+
+.rule{display:grid; grid-template-columns:auto 1fr; gap:5px 12px; font-size:13px; align-items:baseline}
+.rule dt{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+.rule dd{margin:0}
+.chipset{display:flex; flex-wrap:wrap; gap:4px; margin-top:2px}
+.chipset span{font-family:var(--mono); font-size:11px; background:var(--accent-soft); color:var(--accent);
+  padding:1px 6px; border-radius:2px}
+.sep{font-family:var(--mono); font-size:15px; font-weight:600; color:var(--accent)}
+.warn{border-left:3px solid var(--st-link); padding:8px 11px; background:var(--panel-2);
+  font-size:12.5px; color:var(--muted); border-radius:0 2px 2px 0}
+.made{font-family:var(--mono); font-size:12px; background:var(--panel-2); border:1px solid var(--line-soft);
+  border-radius:2px; padding:6px 8px; word-break:break-all}
+.made + .made{margin-top:4px}
+footer{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--faint); border-top:1px solid var(--line); padding-top:12px;
+  display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand">
+      <span class="eyebrow">SY COMPANY · 토리든 퍼포먼스 마케팅</span>
+      <h1>자료실</h1>
+    </div>
+    <div class="meta" id="meta">—</div>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="card" id="storeWarn" style="display:none">
+    <div class="warn" id="storeWarnText"></div>
+  </div>
+
+  <section class="card">
+    <h2>수집 자료 · 팀 › 직원 › 업무 제목</h2>
+    <div class="browser">
+      <div class="tree" id="tree"></div>
+      <div class="doc" id="doc"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>네이밍팀 구분자</h2>
+    <div id="naming"></div>
+  </section>
+
+  <section class="card">
+    <h2>팀별 업무 지시 · 파일 투입구</h2>
+    <div class="teams" id="teams"></div>
+  </section>
+
+  <section class="card">
+    <h2>데이터</h2>
+    <div class="row">
+      <button id="btnExport">내보내기 (JSON)</button>
+      <button id="btnImport">불러오기</button>
+      <input type="file" id="importFile" accept=".json" hidden>
+      <button id="btnClear">자료 비우기</button>
+      <span class="meta" id="dataNote" style="font-family:var(--mono); font-size:11px; color:var(--faint)"></span>
+    </div>
+  </section>
+
+  <footer>
+    <span>사무실 시뮬레이터와 같은 브라우저 저장소를 씁니다</span>
+    <span id="savedAt">—</span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+/*__STORE__*/
+const ROSTER = /*__ROSTER__*/null;
+
+const TEAMS = ROSTER.teams;                        // [{team, members:[{name, code, job, detail}]}]
+const STATE_COLOR = {"완료":"--st-done","진행 중":"--st-work","승인 대기":"--st-appr","연동 대기":"--st-link","대기":"--faint"};
+
+let S = storeLoad();
+let sel = null;                                    // 선택한 자료 id
+const draft = {};                                  // 팀별로 쓰던 지시 (다시 그려도 안 날아가게)
+let lastSig = "";                                  // 투입구가 실제로 바뀌었을 때만 다시 그린다
+let open = new Set(TEAMS.map(t => t.team));        // 펼친 팀
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "");
+
+function entriesOf(team, name){
+  return (S.archive || []).filter(e => e.team === team && e.member === name)
+                          .sort((a,b) => b.at - a.at);
+}
+function memberState(name){
+  return (S.sim && S.sim.states && S.sim.states[name]) || "대기";
+}
+
+/* ── 통계 ── */
+function renderStats(){
+  const n = (S.archive || []).length;
+  const members = TEAMS.reduce((s,t) => s + t.members.length, 0);
+  const notes = Object.values(S.inbox || {}).reduce((s,b) => s + (b.notes?.length || 0), 0);
+  const files = Object.values(S.inbox || {}).reduce((s,b) => s + (b.files?.length || 0), 0);
+  $("stats").innerHTML = `
+    <div class="stat"><div class="k">수집 자료</div><div class="v">${n}<small>건</small></div></div>
+    <div class="stat"><div class="k">팀</div><div class="v">${TEAMS.length}<small>개</small></div></div>
+    <div class="stat"><div class="k">직원</div><div class="v">${members}<small>명</small></div></div>
+    <div class="stat"><div class="k">받은 지시</div><div class="v">${notes}<small>건</small></div></div>
+    <div class="stat"><div class="k">받은 파일</div><div class="v">${files}<small>개</small></div></div>`;
+  $("meta").textContent = S.sim
+    ? `사무실 ${S.sim.stepNo || ""} ${S.sim.stepName || ""} · ${S.sim.clock || ""}`
+    : "사무실 시뮬레이터 기록 없음";
+  $("savedAt").textContent = S.savedAt ? `마지막 갱신 ${fmtWhen(S.savedAt)}` : "—";
+}
+
+/* ── 카테고리 나무: 팀 › 직원 › 업무 제목 ── */
+function renderTree(){
+  const t = $("tree");
+  t.innerHTML = "";
+  TEAMS.forEach(tm => {
+    const total = tm.members.reduce((s,m) => s + entriesOf(tm.team, m.name).length, 0);
+    const wrap = document.createElement("div");
+    wrap.className = "tteam";
+    const head = document.createElement("button");
+    head.className = "trow";
+    head.innerHTML = `<span class="car">${open.has(tm.team) ? "▼" : "▶"}</span>
+      <span class="nm">${esc(tm.team)}</span><span class="ct">${total}</span>`;
+    head.onclick = () => { open.has(tm.team) ? open.delete(tm.team) : open.add(tm.team); renderTree(); };
+    wrap.appendChild(head);
+    if (open.has(tm.team)){
+      tm.members.forEach(m => {
+        const list = entriesOf(tm.team, m.name);
+        const mem = document.createElement("div");
+        mem.className = "tmem";
+        const st = memberState(m.name);
+        const mb = document.createElement("button");
+        mb.className = "trow";
+        mb.innerHTML = `<span class="dot" style="background:var(${STATE_COLOR[st] || "--faint"})"
+            title="${esc(st)}"></span>
+          <span class="nm">${esc(m.name)}<span class="role">${esc(m.job)}</span></span>
+          <span class="ct">${list.length}</span>`;
+        mb.onclick = () => {
+          sel = list.length ? list[0].id : {team: tm.team, member: m.name};
+          renderDoc();
+        };
+        mem.appendChild(mb);
+        list.forEach(e => {
+          const d = document.createElement("div");
+          d.className = "tdoc";
+          const b = document.createElement("button");
+          b.className = "trow" + (sel === e.id ? " on" : "");
+          b.innerHTML = `<span class="nm">${esc(e.title)}</span>
+            <span class="ct">${fmtAgo(e.at)}</span>`;
+          b.onclick = () => { sel = e.id; renderTree(); renderDoc(); };
+          if (sel === e.id) b.classList.add("on");
+          d.appendChild(b);
+          mem.appendChild(d);
+        });
+        wrap.appendChild(mem);
+      });
+    }
+    t.appendChild(wrap);
+  });
+}
+
+function renderDoc(){
+  const d = $("doc");
+  if (sel && typeof sel === "object"){
+    const tm = TEAMS.find(t => t.team === sel.team);
+    const m = tm && tm.members.find(x => x.name === sel.member);
+    d.innerHTML = `<div class="crumb">${esc(sel.team)} › ${esc(sel.member)}</div>
+      <h3>${esc(m ? m.job : "")}</h3>
+      <div class="body">${esc(m ? m.detail : "")}</div>
+      <div class="when">아직 쌓인 자료가 없습니다. 사무실 시뮬레이터를 돌리면 이 사람이 만든 자료가 여기에 들어옵니다.</div>`;
+    return;
+  }
+  const e = (S.archive || []).find(x => x.id === sel);
+  if (!e){
+    d.innerHTML = `<div class="empty">왼쪽에서 팀·직원·업무를 고르면 내용이 여기 나옵니다.</div>`;
+    return;
+  }
+  const lines = String(e.body || "").split("\n").filter(Boolean);
+  d.innerHTML = `<div class="crumb">${esc(e.team)} › ${esc(e.member)} › ${esc(e.step || "")}</div>
+    <h3>${esc(e.title)}</h3>
+    <div class="body">${lines.map(l => esc(l)).join("<br>")}</div>
+    <div class="when">${fmtWhen(e.at)} · ${fmtAgo(e.at)}</div>`;
+}
+
+/* ── 네이밍 구분자 ── */
+function renderNaming(){
+  const n = S.naming, el = $("naming");
+  if (!n){
+    el.innerHTML = `<div class="warn">
+      아직 구분자 파일을 못 받았습니다. 대표가 준 엑셀에는 인원 편성표만 있고 캠페인명·소재명 예시가 없어서,
+      학습할 구분자를 찾지 못했습니다. 아래 <b>네이밍팀 투입구</b>에 캠페인명·소재명이 들어 있는
+      엑셀(xlsx)이나 CSV를 넣어주세요. 그 전까지 박선우·고은채는 '연동 대기'로 멈춰 있습니다.
+    </div>`;
+    return;
+  }
+  const sample = [makeName(n), makeName(n), makeName(n)].filter(Boolean);
+  el.innerHTML = `
+    <dl class="rule">
+      <dt>구분자</dt><dd><span class="sep">${esc(n.sep)}</span></dd>
+      <dt>자리 수</dt><dd>${n.width}칸</dd>
+      <dt>출처</dt><dd>${esc(n.fileName || "—")} · ${fmtWhen(n.learnedAt)}</dd>
+    </dl>
+    <div style="margin-top:11px">
+      ${n.slots.map((s,i) => `<div style="margin-bottom:6px">
+        <div class="k" style="font-family:var(--mono); font-size:10px; letter-spacing:.12em;
+             text-transform:uppercase; color:var(--faint)">${i+1}번째 칸 · ${s.length}종</div>
+        <div class="chipset">${s.slice(0,12).map(v => `<span>${esc(v)}</span>`).join("")}
+        ${s.length > 12 ? `<span>+${s.length-12}</span>` : ""}</div></div>`).join("")}
+    </div>
+    <div style="margin-top:12px">
+      <div class="k" style="font-family:var(--mono); font-size:10px; letter-spacing:.12em;
+           text-transform:uppercase; color:var(--faint); margin-bottom:5px">이 규칙으로 만든 예시</div>
+      ${sample.map(s => `<div class="made">${esc(s)}</div>`).join("")}
+    </div>
+    <div class="warn" style="margin-top:12px">새 엑셀을 넣기 전까지 이 구분자를 그대로 유지합니다.</div>`;
+}
+
+/* ── 팀별 투입구 ── */
+function inboxOf(team){
+  S.inbox = S.inbox || {};
+  S.inbox[team] = S.inbox[team] || {notes: [], files: []};
+  return S.inbox[team];
+}
+
+function renderTeams(){
+  const wrap = $("teams");
+  wrap.innerHTML = "";
+  TEAMS.forEach(tm => {
+    const box = inboxOf(tm.team);
+    const lead = tm.members.find(m => m.code);
+    const el = document.createElement("div");
+    el.className = "tbox";
+    el.innerHTML = `
+      <h3>${esc(tm.team)}<span class="lead">${lead ? esc(lead.name) + " · " + esc(lead.code) : ""}</span></h3>
+      <textarea placeholder="업무 지시를 적어주세요"></textarea>
+      <div class="row"><button class="primary send">지시 전달</button></div>
+      <div class="drop">파일을 끌어다 놓거나 눌러서 선택 (xlsx · csv · txt)</div>
+      <div class="feed"></div>`;
+    const ta = el.querySelector("textarea");
+    ta.value = draft[tm.team] || "";
+    ta.oninput = () => { draft[tm.team] = ta.value; };
+    el.querySelector(".send").onclick = () => {
+      const v = ta.value.trim();
+      if (!v) return;
+      storePatch(o => {
+        o.inbox = o.inbox || {};
+        o.inbox[tm.team] = o.inbox[tm.team] || {notes: [], files: []};
+        o.inbox[tm.team].notes.unshift({text: v, at: Date.now(), read: false});
+      });
+      ta.value = ""; draft[tm.team] = "";
+      refresh();
+    };
+    const drop = el.querySelector(".drop");
+    const pick = document.createElement("input");
+    pick.type = "file"; pick.hidden = true;
+    pick.accept = ".xlsx,.csv,.tsv,.txt";
+    el.appendChild(pick);
+    drop.onclick = () => pick.click();
+    pick.onchange = () => pick.files[0] && takeFile(tm.team, pick.files[0]);
+    ["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault(); drop.classList.add("over");
+    }));
+    ["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault(); drop.classList.remove("over");
+    }));
+    drop.addEventListener("drop", e => {
+      const f = e.dataTransfer.files[0];
+      if (f) takeFile(tm.team, f);
+    });
+    const feed = el.querySelector(".feed");
+    const items = [...box.notes.map(n => ({...n, kind:"지시"})),
+                   ...box.files.map(f => ({...f, kind:"파일", text: f.name}))]
+                  .sort((a,b) => b.at - a.at).slice(0, 5);
+    feed.innerHTML = items.length
+      ? items.map(i => `<div class="it"><span class="t">${i.kind}</span>
+          <span class="x">${esc(i.text)}${i.note ? " — " + esc(i.note) : ""}</span>
+          <span class="t">${fmtAgo(i.at)}</span></div>`).join("")
+      : `<div class="none">아직 받은 지시나 파일이 없습니다.</div>`;
+    wrap.appendChild(el);
+  });
+}
+
+async function takeFile(team, file){
+  let note = "", rows = null;
+  try {
+    if (/\.(xlsx|csv|tsv)$/i.test(file.name)){
+      rows = await readTable(file);
+      note = `${rows.length}행 읽음`;
+    } else {
+      const t = await file.text();
+      note = `${t.split(/\r?\n/).length}줄`;
+    }
+  } catch (e) { note = "읽지 못함 — " + e.message; }
+
+  let learned = null, patterns = null;
+  if (rows && team === "네이밍팀"){
+    learned = learnNaming(rows);
+    note += learned ? ` · 구분자 "${learned.sep}" 학습` : " · 구분자를 찾지 못함";
+  }
+  if (rows && team === "성과리뷰팀"){
+    patterns = {fileName: file.name, rows: rows.length, at: Date.now()};
+    note += " · 패턴 자료 접수";
+  }
+
+  storePatch(o => {
+    o.inbox = o.inbox || {};
+    o.inbox[team] = o.inbox[team] || {notes: [], files: []};
+    o.inbox[team].files.unshift({name: file.name, size: file.size, at: Date.now(), note, read: false});
+    if (learned) o.naming = {...learned, fileName: file.name};
+    if (patterns) o.patterns = patterns;
+  });
+  refresh();
+}
+
+/* ── 데이터 ── */
+$("btnExport").onclick = async () => {
+  const data = JSON.stringify(storeLoad(), null, 2);
+  const name = "sy-company-자료실.json";
+  if (window.claude && window.claude.downloads){
+    try { await window.claude.downloads.save({filename: name, data}); return; }
+    catch (e) { $("dataNote").textContent = "저장이 취소됐습니다."; return; }
+  }
+  $("dataNote").textContent = "이 환경에서는 파일 저장을 쓸 수 없습니다.";
+};
+$("btnImport").onclick = () => $("importFile").click();
+$("importFile").onchange = async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    const o = JSON.parse(await f.text());
+    if (!o || o.v !== 2) throw new Error("형식이 맞지 않습니다");
+    storeSave(o);
+    $("dataNote").textContent = "불러왔습니다.";
+    refresh();
+  } catch (err) { $("dataNote").textContent = "불러오지 못했습니다 — " + err.message; }
+};
+$("btnClear").onclick = () => {
+  if (!confirm("쌓인 자료와 받은 지시를 모두 지웁니다. 사무실 진행 상태는 그대로 둡니다.")) return;
+  storePatch(o => { o.archive = []; o.inbox = {}; });
+  sel = null;
+  refresh();
+};
+
+function refresh(){
+  S = storeLoad();
+  renderStats(); renderTree(); renderDoc(); renderNaming();
+  const sig = JSON.stringify(S.inbox || {}) + "|" + JSON.stringify(S.naming || null);
+  if (sig !== lastSig){ lastSig = sig; renderTeams(); }
+}
+
+if (!STORE_OK){
+  $("storeWarn").style.display = "";
+  $("storeWarnText").textContent =
+    "이 브라우저에서는 저장소를 쓸 수 없어, 이 페이지를 닫으면 내용이 사라집니다. " +
+    "내보내기로 파일을 받아두시면 다음에 불러올 수 있습니다.";
+}
+storeOnChange(() => refresh());
+addEventListener("focus", refresh);
+refresh();
+</script>

@@ -133,6 +133,11 @@ button:disabled:hover{border-color:var(--line); color:var(--ink)}
 .quote{margin-top:11px; padding-top:10px; border-top:1px dashed var(--line); font-size:12.5px; color:var(--muted); line-height:1.6}
 .quote p{margin:0 0 3px}
 .hint{font-size:12.5px; color:var(--faint)}
+.vrow{display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; padding:2px 0}
+.vrow b{font-family:var(--mono); font-variant-numeric:tabular-nums}
+.vnote{margin-top:8px; padding-top:8px; border-top:1px dashed var(--line);
+  font-size:12px; color:var(--muted); line-height:1.5}
+.vnote b{font-family:var(--mono); color:var(--accent)}
 
 /* 대표 지시창 */
 .console{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft), var(--shadow)}
@@ -220,6 +225,11 @@ footer{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-tran
       </div>
 
       <div class="card">
+        <h2>자료실</h2>
+        <div id="vault"></div>
+      </div>
+
+      <div class="card">
         <h2>직원 상태 (5종)</h2>
         <div class="legend" id="legend"></div>
         <div class="bars" id="bars"></div>
@@ -250,6 +260,7 @@ footer{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-tran
 
 <script>
 "use strict";
+/*__STORE__*/
 const MAP = /*__MAP__*/null;
 const LINES = /*__LINES__*/null;
 
@@ -315,11 +326,12 @@ const ORDER = ["완료","진행 중","승인 대기","연동 대기","대기"];
 
 const agents = [];
 rooms.forEach(r => {
-  if (r["방"] === "회의실" || r["방"] === "라운지" || r["방"] === "대표실") return;
+  if (["회의실","라운지","자료실","대표실"].includes(r["방"])) return;
   r["자리"].forEach(s => {
     const m = s["이름"].match(/^([^(]+)(?:\((.+)\))?$/);
     agents.push({
       id: agents.length, full: s["이름"], name: m[1], code: m[2] || null, team: r["방"],
+      job: s["맡는 일"] || "", detail: s["상세"] || "",
       seat: {x:s["자리"][0], y:s["자리"][1]}, desk: {x:s["책상"][0], y:s["책상"][1]},
       x: ENTRY[0], y: ENTRY[1], px: ENTRY[0], py: ENTRY[1], prev:{x:ENTRY[0], y:ENTRY[1]},
       t: 1, path: [], goal: null, state: "대기", anim: "sit", face: "up",
@@ -480,7 +492,9 @@ const sitAll = list => list.forEach(a => sendTo(a, a.seat.x, a.seat.y, x => { x.
 
 /* 연동 대기 — 사규에 기록된 미연동 항목 */
 const LINKWAIT = {"김도윤":"계정 통계 미연동", "양지호":"계정 통계 미연동",
-                  "심우재":"메일 미연동", "노아린":"메일 미연동"};
+                  "심우재":"메일 미연동", "노아린":"메일 미연동",
+                  "박선우":"구분자 엑셀 미제공", "고은채":"구분자 엑셀 미제공",
+                  "안하람":"패턴 분석용 엑셀 미제공"};
 function applyLinkWait(){
   for (const n in LINKWAIT){ const a = byName[n]; setState(a, "연동 대기"); a.linkReason = LINKWAIT[n]; }
 }
@@ -667,17 +681,18 @@ const PHASES = [
    exit(){ const g = APPROVERS();
            g.forEach(a => { a.bubble = null; a.bubT = 0;
              setState(a, approvalChoice === "승인" ? "완료" : "대기"); }); } },
- { no:"⑧", name:"대본 작성", note:"기획 2팀이 대본을 쓰고, 조민우가 영상 제작팀으로 직접 걸어가 전달합니다.",
+ { no:"⑧", name:"광고 문안 작성", note:"기획 2팀이 문안을 쓰고, 조민우가 네이밍팀으로 직접 걸어가 전달합니다.",
    scenes: () => [
      sceneWork(team("기획 2팀"), 5000),
-     sceneDeliver(byName["조민우"], "영상 제작팀", byName["남기훈"], 3200)
+     sceneDeliver(byName["조민우"], "네이밍팀", byName["유가람"], 3200)
    ],
    exit(){ team("기획 2팀").forEach(a => setState(a,"완료")); } },
- { no:"⑨", name:"제작 (영상·이미지 동시)", note:"두 제작팀이 동시에 텍스트 정리본을 만듭니다.",
-   scenes: () => [ sceneWork(team("영상 제작팀").concat(team("이미지 제작팀")), 6400) ] },
- { no:"⑩", name:"결과물 저장", note:"원본은 건드리지 않고 사본으로 저장합니다.",
-   scenes: () => [ sceneWork([byName["남기훈"], byName["유가람"]], 3600) ],
-   exit(){ team("영상 제작팀").concat(team("이미지 제작팀")).forEach(a => setState(a,"완료")); } },
+ { no:"⑨", name:"네이밍 (캠페인명·소재명)",
+   note:"네이밍팀이 학습된 구분자로 이름을 만듭니다. 구분자 파일이 없으면 '연동 대기'로 멈춥니다.",
+   scenes: () => [ sceneWork(team("네이밍팀"), 6400, {keepLinkWait:true}) ] },
+ { no:"⑩", name:"결과물 저장", note:"유가람이 결과물을 자료실로 옮깁니다. 원본은 건드리지 않고 사본으로 저장합니다.",
+   scenes: () => [ sceneDeliver(byName["유가람"], "자료실", null, 3200) ],
+   exit(){ team("네이밍팀").forEach(a => { if (a.state !== "연동 대기") setState(a,"완료"); }); } },
  { no:"⑪", name:"성과 기록", note:"양지호는 통계가 미연동이라 수치를 비워둔 채 멈춰 있습니다.",
    scenes: () => [ sceneWork(team("성과리뷰팀"), 5200, {keepLinkWait:true}) ] },
  { no:"⑫", name:"비서실 브리핑", note:"은수현이 대표실로 걸어가 최종 보고합니다.",
@@ -730,6 +745,8 @@ function advance(dt){
   }
   if (done && phase < PHASES.length - 1){
     if (p.exit) p.exit();
+    archiveStep(p);                             // 이 단계 산출물을 자료실로
+    refreshVault();
     enterPhase(approvalChoice === "폐기" ? IDX("⑫")
              : approvalChoice === "수정 요청" ? IDX("④") : phase + 1);
   }
@@ -1006,7 +1023,7 @@ const ui = {
   walkCt:document.getElementById("walkCt"), pathCt:document.getElementById("pathCt"),
   detourCt:document.getElementById("detourCt"), speedLbl:document.getElementById("speedLbl"),
   fps:document.getElementById("fps"), log:document.getElementById("log"),
-  meta:document.getElementById("meta"),
+  meta:document.getElementById("meta"), vault:document.getElementById("vault"),
   chips:document.getElementById("chips")
 };
 PHASES.forEach(() => ui.ticks.appendChild(document.createElement("i")));
@@ -1063,8 +1080,8 @@ function renderWho(a){
 const STEP_TEAMS = {
   "①":[], "②":["시장조사팀","브랜드 분석팀"], "③":["브랜드 분석팀"], "④":["기획 1팀"],
   "⑤":["검수팀"], "⑥":["기획 1팀","검수팀","브랜드 분석팀"], "⑦":["기획 1팀","검수팀","브랜드 분석팀"],
-  "⑧":["기획 2팀","영상 제작팀"], "⑨":["영상 제작팀","이미지 제작팀"],
-  "⑩":["영상 제작팀","이미지 제작팀"], "⑪":["성과리뷰팀"], "⑫":["비서실"], "—":[]
+  "⑧":["기획 2팀","네이밍팀"], "⑨":["네이밍팀"],
+  "⑩":["네이밍팀"], "⑪":["성과리뷰팀"], "⑫":["비서실"], "—":[]
 };
 const SEC = () => byName["은수현"];                      // 비서실장
 const LEADERS = () => agents.filter(a => a.code);        // 코드명을 가진 사람 = 팀장 12명
@@ -1251,6 +1268,150 @@ document.getElementById("cmdForm").addEventListener("submit", e => {
 });
 logMsg("sys", null, "대표 지시창입니다. 아래 버튼을 누르거나 직접 입력하세요. 부서·직원 이름을 말하면 그 담당자가 직접 답합니다.");
 
+/* ─────────────── 저장 · 이어서 진행 ───────────────
+   창을 닫아도 진행 상태가 남는다. 다시 열면 저장된 지점에서 이어가고,
+   자리를 비운 만큼 단계를 따라잡는다. 단, ⑦ 대표 승인은 절대 자동으로 넘기지 않는다. */
+const NOMINAL = {"①":22000,"②":26000,"③":5200,"④":5600,"⑤":5600,"⑥":17000,
+                 "⑦":Infinity,"⑧":11000,"⑨":6400,"⑩":6000,"⑪":5200,"⑫":9000,"—":Infinity};
+
+function snapshot(){
+  const states = {};
+  agents.forEach(a => { states[a.name] = a.state; });
+  return {
+    phase, simMin, focusMode, approvalChoice,
+    stepNo: PHASES[phase].no, stepName: PHASES[phase].name,
+    clock: ui.clock.textContent, blocking, at: Date.now()
+  , states };
+}
+let saveT = 0;
+function persist(){
+  storePatch(o => { o.sim = snapshot(); });
+}
+
+function restore(){
+  const o = storeLoad();
+  const s = o.sim;
+  if (!s || typeof s.phase !== "number" || s.phase <= 0) return null;
+
+  simMin = s.simMin || 0;
+  focusMode = !!s.focusMode;
+  document.getElementById("btnFocus").setAttribute("aria-pressed", focusMode);
+  agents.forEach(a => {                        // 다들 자기 자리에 앉은 채로 다시 시작
+    a.spawned = true;
+    a.x = a.seat.x; a.y = a.seat.y; a.px = a.x; a.py = a.y; a.prev = {x:a.x, y:a.y};
+    a.t = 1; a.path = []; a.goal = null; a.onArrive = null; a.inMeeting = false;
+    a.state = (s.states && s.states[a.name]) || "대기";
+    a.anim = a.state === "진행 중" ? "type" : "sit";
+    if (LINKWAIT[a.name] && a.state === "연동 대기") a.linkReason = LINKWAIT[a.name];
+  });
+  enterPhase(s.phase);
+
+  // 비운 사이 흐른 시간만큼 단계를 넘긴다 (최대 8시간, ⑦에서 반드시 멈춤)
+  let budget = Math.min(Date.now() - (s.at || Date.now()), 8 * 3600 * 1000);
+  let skipped = 0;
+  while (budget > 0 && phase < PHASES.length - 1){
+    const p = PHASES[phase];
+    const need = NOMINAL[p.no] ?? 6000;
+    if (!isFinite(need) || budget < need) break;
+    budget -= need;
+    simMin += need / 1000 * 3;
+    if (p.exit) p.exit();
+    enterPhase(phase + 1);
+    skipped++;
+  }
+  return {from: s, skipped, away: Date.now() - (s.at || Date.now())};
+}
+
+/* ─────────────── 자료실에 쌓기 ───────────────
+   단계가 끝나면 그 단계에서 일한 사람의 업무 기록을 자료실로 넘긴다.
+   확인 안 된 사실은 쓰지 않는다 — 무엇을 맡아 어디까지 갔는지만 적는다. */
+let archiveSeq = 0;
+function archiveStep(p){
+  const teams = STEP_TEAMS[p.no] || [];
+  if (!teams.length) return;
+  const rows = [];
+  agents.forEach(a => {
+    if (!teams.includes(a.team)) return;
+    if (a.state === "대기") return;
+    const body = [
+      `담당 범위 — ${a.detail || a.job}`,
+      `단계 — ${p.no} ${p.name}`,
+      `상태 — ${a.state}`,
+    ];
+    if (a.state === "연동 대기"){
+      body.push(`막힌 이유 — ${a.linkReason || "외부 자료 없음"}`);
+      body.push(`이 자료는 연결이 되기 전까지 채울 수 없습니다. 빈 채로 둡니다.`);
+    } else if (a.team === "네이밍팀" && namingRule && a.job !== "검증·최종 판단"){
+      const kind = a.job.includes("캠페인") ? "캠페인명" : "소재명";
+      const made = [];
+      for (let i = 0; i < 5; i++){ const n = makeName(namingRule); if (n) made.push(n); }
+      body.push(`구분자 "${namingRule.sep}" · ${namingRule.width}칸 규칙으로 만든 ${kind}`);
+      made.forEach(n => body.push(`  ${n}`));
+    } else {
+      body.push(`산출 — ${a.job} 작업분을 자료실로 넘겼습니다.`);
+    }
+    rows.push({
+      id: `${Date.now().toString(36)}-${archiveSeq++}`,
+      team: a.team, member: a.name, step: `${p.no} ${p.name}`,
+      title: `${p.no} ${a.job}`, body: body.join("\n"), at: Date.now()
+    });
+  });
+  if (!rows.length) return;
+  storePatch(o => { o.archive = (o.archive || []).concat(rows).slice(-800); });
+}
+
+/* ─────────────── 투입구에서 들어온 것 받기 ─────────────── */
+let namingRule = null, inboxT = 0;
+function pollInbox(){
+  const o = storeLoad();
+  namingRule = o.naming || null;
+  let touched = false;
+  storePatch(st => {
+    const box = st.inbox || {};
+    Object.keys(box).forEach(teamName => {
+      const b = box[teamName];
+      const lead = agents.find(a => a.team === teamName && a.code);
+      (b.files || []).filter(f => !f.read).forEach(f => {
+        f.read = true; touched = true;
+        if (lead) { lead.bubble = `${f.name} 받았습니다`; lead.bubT = 4200; }
+        logMsg("sys", null, `${teamName} — 파일 접수: ${f.name}${f.note ? " (" + f.note + ")" : ""}`);
+        if (teamName === "네이밍팀" && st.naming){
+          ["박선우","고은채"].forEach(n => {
+            const a = byName[n];
+            if (a && a.state === "연동 대기"){ a.state = "대기"; a.linkReason = null; }
+          });
+          logMsg("sys", null, `네이밍팀 연동 대기 해제 — 구분자 "${st.naming.sep}" 적용`);
+        }
+        if (teamName === "성과리뷰팀" && st.patterns){
+          const a = byName["안하람"];
+          if (a && a.state === "연동 대기"){ a.state = "대기"; a.linkReason = null; }
+          logMsg("sys", null, "성과리뷰팀 연동 대기 해제 — 패턴 자료 접수");
+        }
+      });
+      (b.notes || []).filter(n => !n.read).forEach(n => {
+        n.read = true; touched = true;
+        if (lead){ lead.bubble = n.text.slice(0, 26); lead.bubT = 4600; lead.anim = "talk"; }
+        logMsg("them", lead || SEC(), `대표님 지시 받았습니다 — "${n.text}"`);
+      });
+    });
+  });
+  if (touched) refreshVault();
+}
+
+function refreshVault(){
+  const o = storeLoad();
+  const n = (o.archive || []).length;
+  const notes = Object.values(o.inbox || {}).reduce((s,b) => s + (b.notes?.length || 0), 0);
+  const files = Object.values(o.inbox || {}).reduce((s,b) => s + (b.files?.length || 0), 0);
+  ui.vault.innerHTML =
+    `<div class="vrow"><span>쌓인 자료</span><b>${n}건</b></div>
+     <div class="vrow"><span>받은 지시</span><b>${notes}건</b></div>
+     <div class="vrow"><span>받은 파일</span><b>${files}개</b></div>
+     <div class="vnote">${namingRule
+        ? `네이밍 구분자 <b>"${namingRule.sep}"</b> · ${namingRule.width}칸 적용 중`
+        : "네이밍 구분자 파일 대기 중 — 자료실에서 넣어주세요"}</div>`;
+}
+
 let speed = 1, playing = true;
 document.getElementById("btnPlay").onclick = e => {
   playing = !playing; e.target.textContent = playing ? "일시정지" : "재생";
@@ -1272,7 +1433,9 @@ function reset(){
   });
   simMin = 0; pathCalls = 0; detours = 0; blocking = false; approvalChoice = null;
   selected = null; renderWho(null); renderApproval(null);
+  storePatch(o => { o.sim = null; });          // 진행 상태만 초기화. 쌓인 자료는 남긴다
   enterPhase(0);
+  logMsg("sys", null, "07:00부터 다시 시작합니다. 자료실에 쌓인 자료는 그대로 둡니다.");
 }
 
 cv.addEventListener("mousemove", e => {
@@ -1296,6 +1459,8 @@ function loop(now){
     stepAgents(dt);
     advance(dt);
     autonomy(dt);
+    saveT += raw; if (saveT > 3000){ saveT = 0; persist(); }
+    inboxT += raw; if (inboxT > 2000){ inboxT = 0; pollInbox(); }
     for (const a of agents){
       if (a.bubT > 0){ a.bubT -= dt; if (a.bubT <= 0) a.bubble = null; }
       if (a.replyT > 0){ a.replyT -= dt; if (a.replyT <= 0 && !a.inMeeting) say(a, 1); }
@@ -1324,7 +1489,24 @@ function loop(now){
 }
 
 ui.meta.textContent = `${W} × ${H} 타일 · 직원 ${agents.length}명 · A* 경로 탐색`;
-readColors(); fit(); enterPhase(0); requestAnimationFrame(loop);
+readColors(); fit();
+const resumed = restore();
+if (!resumed) enterPhase(0);
+namingRule = storeLoad().naming || null;
+refreshVault();
+if (!STORE_OK){
+  logMsg("sys", null, "이 브라우저는 저장소를 쓸 수 없어, 창을 닫으면 진행 상태가 사라집니다.");
+} else if (resumed){
+  const mins = Math.round(resumed.away / 60000);
+  logMsg("sys", null, `이어서 진행합니다. 자리를 비운 ${mins}분 동안 ` +
+    (resumed.skipped ? `${resumed.skipped}개 단계가 지나 ` : "") +
+    `${PHASES[phase].no} ${PHASES[phase].name}까지 왔습니다.`);
+} else {
+  logMsg("sys", null, "새로 시작합니다. 진행 상태는 자동 저장되어, 창을 닫아도 이어서 볼 수 있습니다.");
+}
+requestAnimationFrame(loop);
+addEventListener("pagehide", persist);          // 창을 닫는 순간까지 저장한다
+addEventListener("visibilitychange", () => { if (document.hidden) persist(); });
 addEventListener("resize", () => { readColors(); fit(); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readColors(); drawBase(); });
 new MutationObserver(() => { readColors(); drawBase(); })
