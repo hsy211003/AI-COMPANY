@@ -3,12 +3,15 @@
 """SY COMPANY 사무실 타일 맵 생성기 + 연결성 검증"""
 from collections import deque
 
-W, H = 35, 38
+W, H = 35, 39
 WALL, FLOOR, CORR, DOOR = '#', '.', ':', '+'
 DESK, SEAT, TABLE, SOFA, ENTRY = 'D', 'o', 'T', 'S', 'E'
 BLOCKING = {WALL, DESK, TABLE, SOFA}
 
-BANDS = {'A': 1, 'B': 9, 'C': 17, 'D': 25, 'E': 33}   # 각 밴드 내부 4행
+BANDS = {'A': 1, 'B': 9, 'C': 17, 'D': 25, 'E': 33}   # 각 밴드 내부 시작 행
+# E열(라운지·회의실·대표실)만 5행. 회의 테이블 양쪽에 통로를 둬야 먼저 앉은 사람이
+# 뒷사람의 길을 막지 않는다.
+BAND_H = {'A': 4, 'B': 4, 'C': 4, 'D': 4, 'E': 5}
 COLS = {1: 1, 2: 11, 3: 21}                            # 각 열 내부 9칸
 VCORR = (31, 33)                                       # 세로 복도 x범위
 CORR_ROWS = [6, 7, 14, 15, 22, 23, 30, 31]             # 가로 복도 y (2칸 폭)
@@ -35,8 +38,8 @@ ROOMS = [
 grid = [[WALL] * W for _ in range(H)]
 
 # 1) 방 내부 바닥
-for by in BANDS.values():
-    for y in range(by, by + 4):
+for band, by in BANDS.items():
+    for y in range(by, by + BAND_H[band]):
         for x in range(1, 30):
             grid[y][x] = WALL if x in (10, 20, 30) else FLOOR
 
@@ -66,27 +69,28 @@ for band, col, name, members in ROOMS:
     y0, x0 = BANDS[band], COLS[col]
     seats = []
     if name == '회의실':
-        for x in range(x0 + 1, x0 + 8):          # 회의 테이블 7칸
-            grid[y0 + 1][x] = TABLE
-            grid[y0][x] = SEAT                    # 위쪽 7석
-            grid[y0 + 2][x] = SEAT                # 아래쪽 7석
-            seats.append({'이름': '—', '책상': None, '자리': [x, y0]})
-            seats.append({'이름': '—', '책상': None, '자리': [x, y0 + 2]})
+        # y0 = 문 앞 통로, y0+1 = 위쪽 7석, y0+2 = 테이블, y0+3 = 아래쪽 7석, y0+4 = 통로
+        for x in range(x0 + 1, x0 + 8):
+            grid[y0 + 2][x] = TABLE
+            grid[y0 + 1][x] = SEAT
+            grid[y0 + 3][x] = SEAT
+            seats.append({'이름': '—', '책상': None, '자리': [x, y0 + 1]})
+            seats.append({'이름': '—', '책상': None, '자리': [x, y0 + 3]})
     elif name == '라운지':
         for tx in (x0 + 2, x0 + 5):               # 라운지 테이블 2개
-            grid[y0 + 1][tx] = SOFA
-            grid[y0][tx] = SEAT
-            grid[y0 + 2][tx] = SEAT
-        grid[y0][x0] = SOFA                       # 자판기
+            grid[y0 + 2][tx] = SOFA
+            grid[y0 + 1][tx] = SEAT
+            grid[y0 + 3][tx] = SEAT
+        grid[y0 + 1][x0] = SOFA                   # 자판기
     else:
         seats = place_desks(x0, y0, members)
 
     # 문: A~D는 아래벽, E는 위벽
-    door = (x0 + 4, y0 + 4) if band != 'E' else (x0 + 4, y0 - 1)
+    door = (x0 + 4, y0 + BAND_H[band]) if band != 'E' else (x0 + 4, y0 - 1)
     grid[door[1]][door[0]] = DOOR
     rooms_meta.append({
         '방': name, '밴드': band,
-        '내부범위': {'x': [x0, x0 + 8], 'y': [y0, y0 + 3]},
+        '내부범위': {'x': [x0, x0 + 8], 'y': [y0, y0 + BAND_H[band] - 1]},
         '문': list(door), '정원': len(members) if members else len(seats),
         '자리': seats,
     })
@@ -118,6 +122,25 @@ for r in rooms_meta:
         for x in range(xa, xb + 1):
             if grid[y][x] not in BLOCKING and (x, y) not in seen:
                 problems.append(f"{r['방']} 내부 ({x},{y}) 고립")
+
+# ── 회의실 좌석 검증 ──────────────────────────────────────────
+# 어떤 순서로 앉든 뒷사람이 갇히지 않으려면, 나머지 좌석이 전부 차 있어도
+# 문에서 각 좌석까지 길이 있어야 한다.
+mr = next(r for r in rooms_meta if r['방'] == '회의실')
+mr_seats = [tuple(s['자리']) for s in mr['자리']]
+door = tuple(mr['문'])
+for target in mr_seats:
+    blocked = {s for s in mr_seats if s != target}
+    seen2 = {door}
+    q2 = deque([door])
+    while q2:
+        x, y = q2.popleft()
+        for nx, ny in ((x+1,y), (x-1,y), (x,y+1), (x,y-1)):
+            if not (0 <= nx < W and 0 <= ny < H) or (nx, ny) in seen2: continue
+            if grid[ny][nx] in BLOCKING or (nx, ny) in blocked: continue
+            seen2.add((nx, ny)); q2.append((nx, ny))
+    if target not in seen2:
+        problems.append(f"회의실 좌석 {target} — 다른 좌석이 다 차면 도달 불가")
 
 desk_total = sum(1 for row in grid for c in row if c == DESK)
 seat_total = sum(1 for row in grid for c in row if c == SEAT)

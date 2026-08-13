@@ -134,6 +134,29 @@ button:disabled:hover{border-color:var(--line); color:var(--ink)}
 .quote p{margin:0 0 3px}
 .hint{font-size:12.5px; color:var(--faint)}
 
+/* 대표 지시창 */
+.console{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft), var(--shadow)}
+.console h2{color:var(--accent)}
+.log{max-height:264px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;
+  padding:2px 5px 2px 0; margin-bottom:11px; overscroll-behavior:contain}
+.msg{display:flex; flex-direction:column; gap:3px; max-width:100%}
+.msg .from{font-family:var(--mono); font-size:9.5px; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--faint); display:flex; align-items:center; gap:5px}
+.msg .from i{width:7px; height:7px; border-radius:50%; border:1px solid rgba(0,0,0,.2); flex:none}
+.msg .body{font-size:12.5px; line-height:1.6; word-break:break-word}
+.msg.me{align-items:flex-end}
+.msg.me .body{background:var(--accent); color:#fff; padding:5px 10px; border-radius:10px 10px 3px 10px; max-width:86%}
+.msg.them .body{background:var(--panel-2); border:1px solid var(--line-soft);
+  padding:6px 10px; border-radius:10px 10px 10px 3px}
+.msg.sys .body{color:var(--faint); font-size:12px; font-style:italic; padding:0}
+.cmdform{display:flex; gap:6px}
+.cmdform input{flex:1; min-width:0; font-family:var(--sans); font-size:12.5px; color:var(--ink);
+  background:var(--panel-2); border:1px solid var(--line); border-radius:2px; padding:7px 10px}
+.cmdform input::placeholder{color:var(--faint)}
+.cmdform input:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent)}
+.chips{display:flex; flex-wrap:wrap; gap:4px; margin-top:9px}
+.chips button{font-size:11px; padding:3px 9px; border-radius:12px}
+
 footer{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
   color:var(--faint); border-top:1px solid var(--line); padding-top:12px; display:flex;
   justify-content:space-between; gap:14px; flex-wrap:wrap}
@@ -146,7 +169,7 @@ footer{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-tran
       <span class="eyebrow">SY COMPANY · 사무실 도면</span>
       <h1>32명이 걸어다니는 하루</h1>
     </div>
-    <div class="meta" id="meta">35 × 38 타일 · 직원 32명 · A* 경로 탐색</div>
+    <div class="meta" id="meta"></div>
   </header>
 
   <div class="stage">
@@ -165,6 +188,16 @@ footer{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-tran
         <div class="step"><span class="n" id="stepNo">①</span><span class="l" id="stepName">전원 출근</span></div>
         <div class="step-note" id="stepNote">입구에서 각자 자리로 이동합니다.</div>
         <div class="ticks" id="ticks"></div>
+      </div>
+
+      <div class="card console">
+        <h2>대표 지시창</h2>
+        <div class="log" id="log" role="log" aria-live="polite"></div>
+        <form class="cmdform" id="cmdForm">
+          <input id="cmd" type="text" autocomplete="off" placeholder="예: 왜 늦어져?" aria-label="대표 지시 입력">
+          <button type="submit">보내기</button>
+        </form>
+        <div class="chips" id="chips"></div>
       </div>
 
       <div class="card">
@@ -336,10 +369,30 @@ function freeTileIn(roomName, avoid){
 
 /* 회의실 좌석 배분 */
 const meetSeats = roomOf["회의실"]["자리"].map(s => ({x:s["자리"][0], y:s["자리"][1]}));
+/* 좌석 목록은 같은 열의 위·아래가 짝을 이루므로, 순서대로 앉히면 테이블을 사이에 두고
+   마주 보게 된다. 회의실은 테이블 양쪽에 통로가 있어 어떤 순서로 앉아도 길이 막히지 않는다
+   (tools/build_office_map.py가 매번 이 조건을 검사한다). */
 function seatMeeting(list){
   const occ = occupancy(null);
   const free = meetSeats.filter(s => !occ.has(key(s.x,s.y)));
-  list.forEach((a,i) => { const s = free[i % free.length]; if (s) sendTo(a, s.x, s.y, x => { x.anim="talk"; }); });
+  const seatOf = new Map();
+  list.forEach((a,i) => {
+    const s = free[i % free.length];
+    if (s){ seatOf.set(a, s); sendTo(a, s.x, s.y, x => { x.anim = "sit"; }); }
+  });
+  return seatOf;
+}
+
+/* 배정된 자리로 갈 수 없게 됐을 때, 지금 위치에서 갈 수 있는 빈자리를 다시 고른다 */
+function reseat(a, taken){
+  const occ = occupancy(a);
+  for (const s of meetSeats){
+    const k = key(s.x, s.y);
+    if (taken.has(k) || occ.has(k)) continue;
+    const p = astar(a.x, a.y, s.x, s.y, occ);
+    if (p){ pathCalls++; return s; }
+  }
+  return null;
 }
 
 /* ─────────────── 이동 ─────────────── */
@@ -443,7 +496,9 @@ let phase = 0, phaseT = 0, spawnQ = [], spawnT = 0, blocking = false, approvalCh
 function sceneWork(list, ms, opts){
   opts = opts || {};
   let t = 0, started = false;
-  return { update(dt){
+  return {
+    get pct(){ return Math.min(1, t/ms); },
+    update(dt){
     if (!started){
       started = true;
       list.forEach(a => {
@@ -458,25 +513,49 @@ function sceneWork(list, ms, opts){
 }
 
 /* 회의 — 걸어가서 마주 앉고, 한 명씩 순서대로 한 줄만 말하고, 자리로 돌아간다 */
-function sceneMeeting(list, opts){
+function sceneMeeting(all, opts){
   opts = opts || {};
-  let st = "gather", i = 0, t = 0, spoke = false, started = false, left = false;
-  const SPEAK = opts.speakMs || 2400, GATHER_MAX = 20000, LEAVE_MAX = 20000;
+  let list = all.slice();                          // 실제로 도착해 발언하는 사람
+  let st = "gather", i = 0, t = 0, spoke = false, started = false, left = false, seatOf = null, retry = 0;
+  const SPEAK = opts.speakMs || 2400, GATHER_MAX = 90000, LEAVE_MAX = 60000;
+  const seated = a => { const s = seatOf && seatOf.get(a);
+    return !!s && a.x === s.x && a.y === s.y && !a.path.length && a.t >= 1; };
   return {
     get holding(){ return st === "hold"; },
+    get stage(){ return st; },
     get roster(){ return list; },
+    get pct(){ return st === "gather" ? .2 : st === "speak" ? .2 + .6*(i/Math.max(1,list.length))
+                    : st === "hold" ? .9 : .95; },
     update(dt){
       t += dt;
       if (st === "gather"){
         if (!started){
           started = true;
-          list.forEach(a => { a.inMeeting = true; a.bubble = null; a.bubT = 0; a.replyT = 0;
+          all.forEach(a => { a.inMeeting = true; a.bubble = null; a.bubT = 0; a.replyT = 0;
             if (opts.state && a.state !== "연동 대기") setState(a, opts.state); });
-          seatMeeting(list);                       // 테이블을 사이에 두고 마주 보게 배치
+          seatOf = seatMeeting(all);               // 테이블을 사이에 두고 마주 보게 배치
         }
-        if (settled(list) || t > GATHER_MAX){      // 전원 착석해야 발언을 시작한다
+        // 자리로 갈 수 없게 된 사람은 갈 수 있는 빈자리로 다시 배정한다
+        retry -= dt;
+        if (retry <= 0){
+          retry = 700;
+          const taken = new Set();
+          all.forEach(a => { const s = seatOf.get(a); if (s && seated(a)) taken.add(key(s.x, s.y)); });
+          all.forEach(a => {
+            if (seated(a)) return;
+            const blockedNow = (!a.path.length && !a.goal) || a.stuck > 40;
+            if (!blockedNow) { const s = seatOf.get(a); if (s) taken.add(key(s.x, s.y)); return; }
+            const s = reseat(a, taken);
+            if (s){ seatOf.set(a, s); taken.add(key(s.x, s.y));
+                    sendTo(a, s.x, s.y, x => { x.anim = "sit"; }); a.stuck = 0; }
+          });
+        }
+        // 배정된 좌석에 전원이 실제로 앉아야 발언을 시작한다
+        const here = all.filter(seated);
+        if (here.length === all.length || t > GATHER_MAX){
+          list = here.length ? here : all;         // 못 온 사람은 발언 순서에서 뺀다
           st = "speak"; t = 0; i = 0; spoke = false;
-          list.forEach(a => { a.anim = "sit"; });
+          all.forEach(a => { if (a.anim !== "walk") a.anim = "sit"; });
         }
         return false;
       }
@@ -488,6 +567,7 @@ function sceneMeeting(list, opts){
           a.bubble = opts.line ? opts.line : (LINES[a.full] || ["…"])[opts.lineIdx ?? 0];
           a.bubT = 1e9;
         }
+        all.forEach(x => { if (x !== a && x.bubble){ x.bubble = null; x.bubT = 0; } });
         if (t > SPEAK){
           a.bubble = null; a.bubT = 0; a.anim = "sit";
           i++; spoke = false; t = 0;
@@ -496,22 +576,26 @@ function sceneMeeting(list, opts){
         return false;
       }
       if (st === "hold"){                          // ⑦ — 대표가 누를 때까지 여기서 멈춘다
-        if (!left){
-          left = true;
-          list.forEach(a => { a.bubble = "확인해주세요"; a.bubT = 1e9; a.anim = "sit"; });
-        }
+        // 회의 소집 같은 지시로 자리를 떴더라도, 결재 대기자는 회의실 좌석으로 돌아와 기다린다
+        all.forEach(a => {
+          a.inMeeting = true;                      // 회의 소집에 불려갔다 와도 다시 결재 대기 상태로
+          if (a.bubble !== "확인해주세요"){ a.bubble = "확인해주세요"; a.bubT = 1e9; }
+          const s = seatOf && seatOf.get(a);
+          if (s && !a.path.length && a.t >= 1 && (a.x !== s.x || a.y !== s.y))
+            sendTo(a, s.x, s.y, x => { x.anim = "sit"; });
+        });
         if (opts.gate && opts.gate()){
-          list.forEach(a => { a.bubble = null; a.bubT = 0; });
+          all.forEach(a => { a.bubble = null; a.bubT = 0; });
           st = "leave"; t = 0; left = false;
         }
         return false;
       }
       if (!left){                                  // leave — 회의가 끝나면 각자 자리로
         left = true; t = 0;
-        list.forEach(a => { a.inMeeting = false; });
-        sitAll(list);
+        all.forEach(a => { a.inMeeting = false; });
+        sitAll(all);
       }
-      return settled(list) || t > LEAVE_MAX;
+      return settled(all) || t > LEAVE_MAX;
     }
   };
 }
@@ -519,7 +603,9 @@ function sceneMeeting(list, opts){
 /* 다른 방으로 걸어가 직접 전달하고 돌아온다 */
 function sceneDeliver(who, roomName, partner, ms){
   let st = "go", t = 0, started = false;
-  return { update(dt){
+  return {
+    get pct(){ return st === "go" ? .25 : st === "talk" ? .25 + .55*Math.min(1,t/ms) : .9; },
+    update(dt){
     if (!started){
       started = true; who.inMeeting = true; setState(who, "진행 중");
       const tile = freeTileIn(roomName);
@@ -619,7 +705,14 @@ function enterPhase(i){
 }
 const IDX = no => PHASES.findIndex(p => p.no === no);
 
+/* 대표 지시로 끼어드는 장면 — 이게 도는 동안 단계는 진행하지 않는다 */
+let override = null, overrideLabel = "";
+
 function advance(dt){
+  if (override){
+    if (override.update(dt)){ override = null; overrideLabel = ""; }
+    return;
+  }
   const p = PHASES[phase];
   phaseT += dt;
   let done = false;
@@ -912,7 +1005,9 @@ const ui = {
   appr:document.getElementById("apprCard"), apprBody:document.getElementById("apprBody"),
   walkCt:document.getElementById("walkCt"), pathCt:document.getElementById("pathCt"),
   detourCt:document.getElementById("detourCt"), speedLbl:document.getElementById("speedLbl"),
-  fps:document.getElementById("fps")
+  fps:document.getElementById("fps"), log:document.getElementById("log"),
+  meta:document.getElementById("meta"),
+  chips:document.getElementById("chips")
 };
 PHASES.forEach(() => ui.ticks.appendChild(document.createElement("i")));
 ORDER.forEach(s => {
@@ -963,6 +1058,199 @@ function renderWho(a){
     <div class="quote">${L.map(l=>`<p>“${l}”</p>`).join("")}</div>`;
 }
 
+/* ─────────────── 대표 지시창 ─────────────── */
+/* 각 단계에서 실제로 일하는 부서 — "왜 늦어져?"가 진짜 병목을 고를 때 쓴다 */
+const STEP_TEAMS = {
+  "①":[], "②":["시장조사팀","브랜드 분석팀"], "③":["브랜드 분석팀"], "④":["기획 1팀"],
+  "⑤":["검수팀"], "⑥":["기획 1팀","검수팀","브랜드 분석팀"], "⑦":["기획 1팀","검수팀","브랜드 분석팀"],
+  "⑧":["기획 2팀","영상 제작팀"], "⑨":["영상 제작팀","이미지 제작팀"],
+  "⑩":["영상 제작팀","이미지 제작팀"], "⑪":["성과리뷰팀"], "⑫":["비서실"], "—":[]
+};
+const SEC = () => byName["은수현"];                      // 비서실장
+const LEADERS = () => agents.filter(a => a.code);        // 코드명을 가진 사람 = 팀장 12명
+const ACT = {walk:"걷는 중", type:"타이핑 중", talk:"대화 중", sit:"앉아 있음"};
+
+function phasePct(){
+  const p = PHASES[phase];
+  if (!p._scenes || !p._scenes.length) return 0;
+  const sc = p._scenes[p._si];
+  const inner = sc && typeof sc.pct === "number" ? sc.pct : 0;
+  return Math.min(99, Math.round((p._si + inner) / p._scenes.length * 100));
+}
+
+function logMsg(kind, who, text){
+  const d = document.createElement("div");
+  d.className = "msg " + kind;
+  const from = document.createElement("span"); from.className = "from";
+  const body = document.createElement("span"); body.className = "body";
+  body.textContent = text;
+  if (kind === "them"){
+    const dot = document.createElement("i");
+    dot.style.background = `var(${STATES[who.state].c})`;
+    from.appendChild(dot);
+    from.appendChild(document.createTextNode(
+      `${who.name}${who.code ? " · " + who.code : ""} · ${who.team}`));
+    d.append(from, body);
+  } else if (kind === "me"){
+    from.textContent = "대표";
+    d.append(from, body);
+  } else { d.append(body); }
+  ui.log.appendChild(d);
+  ui.log.scrollTop = ui.log.scrollHeight;
+}
+
+/* 담당자가 직접 답한다 — 지시창에 글로, 지도 위에는 말풍선으로 */
+function reply(a, text, bubble){
+  logMsg("them", a, text);
+  if (!a.inMeeting){
+    a.bubble = bubble || text.slice(0, 24);
+    a.bubT = 4200;
+    if (a.anim !== "walk") a.anim = "talk";
+  }
+  selected = a; renderWho(a);
+}
+
+/* "왜 늦어져?" — 진짜 병목 하나만 짚는다 (사규 4장 응답 규칙) */
+function bottleneck(){
+  const sec = SEC(), p = PHASES[phase];
+  if (blocking){                                   // ① 결재 대기면 그것부터. 다른 얘기 금지.
+    const g = APPROVERS(), link = agents.filter(x => x.state === "연동 대기").length;
+    return reply(sec,
+      `원인은 하나예요 — 대표님 결재 대기입니다. 회의실에서 ${g.length}명(${g.map(x=>x.name).join("·")})이 `+
+      `기다리고 있어요. 승인만 주시면 바로 ⑧ 대본 작성으로 넘어갑니다.` +
+      (link ? ` 그 외 연동 대기 ${link}명은 외부 연결 문제라 오늘 진행이 어려워요.` : ""),
+      "대표님 결재 대기입니다");
+  }
+  if (override){
+    return reply(sec, `${overrideLabel} 중입니다. 끝나면 ${p.no} ${p.name}으로 돌아갑니다.`,
+                 `${overrideLabel} 중입니다`);
+  }
+  const jam = agents.filter(a => a.stuck > 40);
+  if (jam.length >= 2){
+    return reply(sec, `복도가 막혔습니다. ${jam.slice(0,3).map(a=>a.name).join("·")} 등 ${jam.length}명이 `+
+      `서로 길이 겹쳐 서 있어요. 비켜서면서 곧 풀립니다.`, "복도가 막혔습니다");
+  }
+  const stepTeams = STEP_TEAMS[p.no] || [];        // ③ 외부 연동 문제 — 무엇이 없어서 못 하는지
+  const linkNow = agents.filter(a => a.state === "연동 대기" && stepTeams.includes(a.team));
+  if (linkNow.length){
+    const l = linkNow[0];
+    return reply(sec, `${p.no} ${p.name}에서 ${l.team} ${l.name}이(가) 멈춰 있습니다. `+
+      `${l.linkReason} — 자료가 들어오기 전까지 이 부분은 진행되지 않습니다.`,
+      `${l.name} · ${l.linkReason}`);
+  }
+  const working = agents.filter(a => a.state === "진행 중");
+  if (working.length){                             // ② 부서명 + 진행률 + 정상 여부
+    const tm = [...new Set(working.map(a => a.team))];
+    return reply(sec, `지연 없습니다. ${tm.join("·")} ${working.length}명이 ${p.no} ${p.name}을 `+
+      `진행 중이고 진행률 ${phasePct()}%입니다. 정상입니다.`, `${tm[0]} ${phasePct()}% 정상`);
+  }
+  return reply(sec, "지연 없습니다.", "지연 없습니다");   // ④ 문제 없으면 한 줄
+}
+
+function statusReport(){
+  const sec = SEC(), p = PHASES[phase], next = PHASES[phase + 1];
+  const working = agents.filter(a => a.state === "진행 중");
+  const tm = [...new Set(working.map(a => a.team))];
+  reply(sec,
+    `${ui.clock.textContent} 기준 ${p.no} ${p.name}, 진행률 ${phasePct()}%입니다. ` +
+    (tm.length ? `${tm.join("·")}에서 ${working.length}명이 작업 중입니다. ` : "작업 중인 부서는 없습니다. ") +
+    (next ? `다음 순서는 ${next.no} ${next.name}입니다.` : "오늘 일정은 여기까지입니다."),
+    `${p.no} ${p.name} ${phasePct()}%`);
+}
+
+function teamReport(name){
+  const list = team(name), lead = list.find(a => a.code) || list[0];
+  const link = list.filter(a => a.state === "연동 대기");
+  reply(lead,
+    `${name}입니다. 저는 ${lead.state}, ${ACT[lead.anim]}입니다. ` +
+    `팀원 현황은 ${list.map(a => `${a.name} ${a.state}`).join(", ")}입니다.` +
+    (link.length ? ` ${link.map(a => `${a.name}은 ${a.linkReason}`).join(", ")}이라 멈춰 있습니다.` : ""),
+    `${name} 현황입니다`);
+}
+
+function personReport(a){
+  const L = LINES[a.full] || [];
+  reply(a,
+    `${a.team} ${a.name}입니다. 지금 ${a.state}, ${ACT[a.anim]}입니다. 위치는 (${a.x}, ${a.y})이고 ` +
+    (a.goal ? `(${a.goal.x}, ${a.goal.y})까지 ${a.path.length}칸 남았습니다.` : "자기 자리에 있습니다.") +
+    (a.state === "연동 대기" ? ` ${a.linkReason}이라 진행이 안 됩니다.` : "") +
+    (L[0] ? ` "${L[0]}"` : ""),
+    L[0] || `${a.state}입니다`);
+}
+
+function summon(){
+  if (override) return reply(SEC(), `이미 ${overrideLabel} 중입니다. 끝나고 다시 불러주세요.`, "회의 진행 중입니다");
+  const leaders = LEADERS();
+  override = sceneMeeting(leaders, {lineIdx:0, speakMs:1400});
+  overrideLabel = "팀장 회의";
+  reply(SEC(), `팀장 ${leaders.length}명 전원 회의실로 소집했습니다. 도착해서 마주 앉는 대로 `+
+    `한 명씩 한 줄씩 보고합니다.`, `팀장 ${leaders.length}명 소집합니다`);
+  logMsg("sys", null, "팀장 12명이 각자 방 문을 나와 회의실로 이동합니다. 회의가 끝날 때까지 단계는 멈춥니다.");
+}
+
+function briefing(){
+  if (override) return reply(SEC(), `이미 ${overrideLabel} 중입니다.`, "회의 진행 중입니다");
+  statusReport();
+  override = sceneDeliver(SEC(), "대표실", null, 4000);
+  overrideLabel = "비서실 브리핑";
+  logMsg("sys", null, "은수현이 대표실로 이동합니다.");
+}
+
+function setFocus(v, fromConsole){
+  focusMode = v;
+  document.getElementById("btnFocus").setAttribute("aria-pressed", focusMode);
+  ui.stepNote.textContent = focusMode
+    ? "집중 모드 — 자율 행동을 중단하고 전원 자리로 복귀합니다."
+    : PHASES[phase].note;
+  if (fromConsole) reply(SEC(), focusMode
+    ? "집중 모드 켰습니다. 라운지·복도에 있던 직원은 전원 자리로 복귀합니다. 결재 대기자는 사규 ⑦대로 회의실에 남습니다."
+    : "집중 모드 껐습니다. 할 일 없는 직원은 다시 자율 행동을 할 수 있습니다.",
+    focusMode ? "전원 자리로 복귀" : "집중 모드 해제");
+}
+
+function approveFromConsole(){
+  if (!blocking) return reply(SEC(), "지금은 결재할 안건이 없습니다.", "결재할 안건 없습니다");
+  approvalChoice = "승인";
+  ui.stepNote.textContent = "대표 결정: 승인";
+  logMsg("sys", null, "결재 처리 — 승인");
+  reply(SEC(), "승인 확인했습니다. 바로 ⑧ 대본 작성으로 넘어갑니다.", "승인 확인했습니다");
+}
+
+function handleCommand(raw){
+  const q = (raw || "").trim();
+  if (!q) return;
+  logMsg("me", null, q);
+  const t = q.replace(/[\s?？!！.,·'"]/g, "");
+  if (/왜늦|늦어|지연|병목|왜안|막혔/.test(t)) return bottleneck();
+  if (/회의소집|소집|팀장회의|다모여|모여/.test(t)) return summon();
+  if (/브리핑/.test(t)) return briefing();
+  if (/집중모드|집중/.test(t)) return setFocus(true, true);
+  if (/승인/.test(t)) return approveFromConsole();
+  const rm = rooms.map(r => r["방"]).find(n => t.includes(n.replace(/\s/g, "")));
+  if (rm && team(rm).length) return teamReport(rm);
+  const who = agents.find(x => t.includes(x.name)) || agents.find(x => x.code && t.includes(x.code));
+  if (who) return personReport(who);
+  if (/현황|상황|보고/.test(t)) return statusReport();
+  return reply(SEC(),
+    "그 지시는 아직 못 알아들었어요. 이렇게 물어보실 수 있습니다 — \"현황 보고\", \"왜 늦어져?\", " +
+    "\"회의 소집\", \"지금 브리핑\", \"집중 모드\", \"승인할게\", 그리고 부서나 직원 이름(예: 검수팀, 은수현).",
+    "다시 말씀해 주세요");
+}
+
+document.getElementById("cmdForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const el = document.getElementById("cmd");
+  handleCommand(el.value);
+  el.value = "";
+});
+["현황 보고","왜 늦어져?","회의 소집","지금 브리핑","집중 모드","승인할게"].forEach(label => {
+  const b = document.createElement("button");
+  b.type = "button"; b.textContent = label;
+  b.onclick = () => handleCommand(label);
+  ui.chips.appendChild(b);
+});
+logMsg("sys", null, "대표 지시창입니다. 아래 버튼을 누르거나 직접 입력하세요. 부서·직원 이름을 말하면 그 담당자가 직접 답합니다.");
+
 let speed = 1, playing = true;
 document.getElementById("btnPlay").onclick = e => {
   playing = !playing; e.target.textContent = playing ? "일시정지" : "재생";
@@ -972,12 +1260,7 @@ document.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => {
   speed = +b.dataset.sp; ui.speedLbl.textContent = "×" + speed;
   document.querySelectorAll("[data-sp]").forEach(o => o.setAttribute("aria-pressed", o === b));
 });
-document.getElementById("btnFocus").onclick = e => {
-  focusMode = !focusMode; e.target.setAttribute("aria-pressed", focusMode);
-  ui.stepNote.textContent = focusMode
-    ? "집중 모드 — 자율 행동을 중단하고 전원 자리로 복귀합니다."
-    : PHASES[phase].note;
-};
+document.getElementById("btnFocus").onclick = () => setFocus(!focusMode);
 document.getElementById("btnReset").onclick = () => reset();
 
 function reset(){
@@ -1040,6 +1323,7 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 
+ui.meta.textContent = `${W} × ${H} 타일 · 직원 ${agents.length}명 · A* 경로 탐색`;
 readColors(); fit(); enterPhase(0); requestAnimationFrame(loop);
 addEventListener("resize", () => { readColors(); fit(); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readColors(); drawBase(); });
