@@ -31,9 +31,10 @@
   --ink:#E9E9F1; --muted:#9A9AAE; --faint:#6E6E82;
   --line:#2F2F3D; --line-soft:#272733;
   --accent:#8C90E8; --accent-soft:#2A2A44;
-  --floor:#20202A; --corr:#1A1A23; --wall:#4A4A5E; --furn:#33333F; --furn-2:#3E3E4E;
-  --st-done:#5FD3B0; --st-work:#F2C744; --st-appr:#F06AAC; --st-link:#B0A0F0; --st-idle:#F2F2F8;
-  --st-idle-ring:#7A7A90;
+  --floor:#20202A; --corr:#191922; --wall:#2C2C3A; --wall-edge:#70708C;
+  --furn:#343442; --furn-2:#4A4A5E;
+  --st-done:#5FD3B0; --st-work:#F2C744; --st-appr:#F06AAC; --st-link:#B0A0F0; --st-idle:#E2E2EC;
+  --st-idle-ring:#9A9AB4;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
@@ -290,7 +291,7 @@ rooms.forEach(r => {
       x: ENTRY[0], y: ENTRY[1], px: ENTRY[0], py: ENTRY[1], prev:{x:ENTRY[0], y:ENTRY[1]},
       t: 1, path: [], goal: null, state: "대기", anim: "sit", face: "up",
       stuck: 0, wobble: Math.random()*Math.PI*2, bubble: null, bubT: 0,
-      spawned: false, idleT: 0, wander: false, onArrive: null, repathT: 0
+      spawned: false, idleT: 0, wander: false, onArrive: null, repathT: 0, inMeeting: false, replyT: 0
     });
   });
 });
@@ -423,11 +424,6 @@ const ease = t => t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
 const say = (a, i) => { const L = LINES[a.full]; if (L){ a.bubble = L[i % L.length]; a.bubT = 3200; } };
 const setState = (a, s) => { a.state = s; };
 const sitAll = list => list.forEach(a => sendTo(a, a.seat.x, a.seat.y, x => { x.anim = "sit"; }));
-const workAt = (list, st) => list.forEach((a,i) => {
-  setState(a, st || "진행 중");
-  sendTo(a, a.seat.x, a.seat.y, x => { x.anim = (x.state === "진행 중") ? "type" : "sit"; });
-  if (Math.random() < .6) setTimeout(() => say(a, i), 400 + i*900);
-});
 
 /* 연동 대기 — 사규에 기록된 미연동 항목 */
 const LINKWAIT = {"김도윤":"계정 통계 미연동", "양지호":"계정 통계 미연동",
@@ -437,7 +433,115 @@ function applyLinkWait(){
 }
 
 let arrivedAll = () => agents.every(a => a.spawned && !a.path.length && a.t >= 1);
+const settled = list => list.every(a => !a.path.length && a.t >= 1);
 let phase = 0, phaseT = 0, spawnQ = [], spawnT = 0, blocking = false, approvalChoice = null;
+
+/* ── 장면 ──────────────────────────────────────────────
+   한 단계는 장면 여러 개로 이루어진다. 각 장면은 update(dt)가 true를 돌려줄 때 끝난다. */
+
+/* 자리에서 하는 일 */
+function sceneWork(list, ms, opts){
+  opts = opts || {};
+  let t = 0, started = false;
+  return { update(dt){
+    if (!started){
+      started = true;
+      list.forEach(a => {
+        if (opts.keepLinkWait && a.state === "연동 대기"){ say(a, 0); return; }
+        setState(a, opts.state || "진행 중");
+        sendTo(a, a.seat.x, a.seat.y, x => { x.anim = x.state === "진행 중" ? "type" : "sit"; });
+      });
+    }
+    t += dt;
+    return t > ms;
+  }};
+}
+
+/* 회의 — 걸어가서 마주 앉고, 한 명씩 순서대로 한 줄만 말하고, 자리로 돌아간다 */
+function sceneMeeting(list, opts){
+  opts = opts || {};
+  let st = "gather", i = 0, t = 0, spoke = false, started = false, left = false;
+  const SPEAK = opts.speakMs || 2400, GATHER_MAX = 20000, LEAVE_MAX = 20000;
+  return {
+    get holding(){ return st === "hold"; },
+    get roster(){ return list; },
+    update(dt){
+      t += dt;
+      if (st === "gather"){
+        if (!started){
+          started = true;
+          list.forEach(a => { a.inMeeting = true; a.bubble = null; a.bubT = 0; a.replyT = 0;
+            if (opts.state && a.state !== "연동 대기") setState(a, opts.state); });
+          seatMeeting(list);                       // 테이블을 사이에 두고 마주 보게 배치
+        }
+        if (settled(list) || t > GATHER_MAX){      // 전원 착석해야 발언을 시작한다
+          st = "speak"; t = 0; i = 0; spoke = false;
+          list.forEach(a => { a.anim = "sit"; });
+        }
+        return false;
+      }
+      if (st === "speak"){
+        const a = list[i];
+        if (!spoke){                               // 동시에 말하지 않는다 — 한 번에 한 명
+          spoke = true; t = 0;
+          a.anim = "talk";
+          a.bubble = opts.line ? opts.line : (LINES[a.full] || ["…"])[opts.lineIdx ?? 0];
+          a.bubT = 1e9;
+        }
+        if (t > SPEAK){
+          a.bubble = null; a.bubT = 0; a.anim = "sit";
+          i++; spoke = false; t = 0;
+          if (i >= list.length) st = opts.hold ? "hold" : "leave";
+        }
+        return false;
+      }
+      if (st === "hold"){                          // ⑦ — 대표가 누를 때까지 여기서 멈춘다
+        if (!left){
+          left = true;
+          list.forEach(a => { a.bubble = "확인해주세요"; a.bubT = 1e9; a.anim = "sit"; });
+        }
+        if (opts.gate && opts.gate()){
+          list.forEach(a => { a.bubble = null; a.bubT = 0; });
+          st = "leave"; t = 0; left = false;
+        }
+        return false;
+      }
+      if (!left){                                  // leave — 회의가 끝나면 각자 자리로
+        left = true; t = 0;
+        list.forEach(a => { a.inMeeting = false; });
+        sitAll(list);
+      }
+      return settled(list) || t > LEAVE_MAX;
+    }
+  };
+}
+
+/* 다른 방으로 걸어가 직접 전달하고 돌아온다 */
+function sceneDeliver(who, roomName, partner, ms){
+  let st = "go", t = 0, started = false;
+  return { update(dt){
+    if (!started){
+      started = true; who.inMeeting = true; setState(who, "진행 중");
+      const tile = freeTileIn(roomName);
+      if (tile) sendTo(who, tile.x, tile.y, x => { x.anim = "talk"; say(x, 0); if (partner) say(partner, 0); });
+      else st = "back";
+    }
+    if (st === "go"){
+      if (settled([who])){ st = "talk"; t = 0; }
+      return false;
+    }
+    if (st === "talk"){
+      const half = t <= ms/2 && t + dt > ms/2;
+      t += dt;
+      if (half) say(who, 1);
+      if (t > ms){ st = "back"; who.inMeeting = false; sitAll([who]); }
+      return false;
+    }
+    return settled([who]);
+  }};
+}
+
+const APPROVERS = () => [byName["문태현"], byName["백승호"], byName["정세라"]];
 
 const PHASES = [
  { no:"①", name:"전원 출근", note:"07:00 · 입구에서 각자 자리로 이동합니다.",
@@ -452,60 +556,50 @@ const PHASES = [
      }
      return !spawnQ.length && arrivedAll();
    }},
- { no:"②", name:"시장조사", note:"한지운 팀이 뉴스와 동향을 모읍니다.",
-   enter(){ applyLinkWait(); workAt(team("시장조사팀")); }, dwell:5200 },
- { no:"②", name:"인수인계 회의", note:"시장조사팀 → 브랜드 분석팀. 회의실에서 한 명씩 한 줄 보고합니다.",
-   enter(){ const g = team("시장조사팀").concat(team("브랜드 분석팀"));
-            g.forEach(a => { if (a.state !== "연동 대기") setState(a, "진행 중"); });
-            seatMeeting(g);
-            g.forEach((a,i) => setTimeout(() => say(a, 1), 1800 + i*1400)); },
-   dwell:8200,
-   exit(){ const g = team("시장조사팀").concat(team("브랜드 분석팀"));
-           sitAll(g);                                  // 연동 대기 직원도 회의가 끝나면 자기 자리로 돌아간다
-           team("시장조사팀").forEach(a => setState(a, "완료")); } },
+ { no:"②", name:"시장조사", note:"한지운 팀이 모으고, 끝나면 브랜드 분석팀과 인수인계 회의를 합니다.",
+   enter(){ applyLinkWait(); },
+   scenes: () => [
+     sceneWork(team("시장조사팀"), 5000),
+     sceneMeeting(team("시장조사팀").concat(team("브랜드 분석팀")), {state:"진행 중", lineIdx:1})
+   ],
+   exit(){ team("시장조사팀").forEach(a => setState(a, "완료")); } },
  { no:"③", name:"브랜드 분석", note:"김도윤은 계정 통계가 미연동이라 '연동 대기'로 멈춥니다.",
-   enter(){ workAt(team("브랜드 분석팀").filter(a => a.state !== "연동 대기"));
-            team("브랜드 분석팀").filter(a => a.state === "연동 대기").forEach(a => { say(a,0); }); },
-   dwell:5200, exit(){ team("브랜드 분석팀").forEach(a => { if (a.state === "진행 중") setState(a,"완료"); }); } },
+   scenes: () => [ sceneWork(team("브랜드 분석팀"), 5200, {keepLinkWait:true}) ],
+   exit(){ team("브랜드 분석팀").forEach(a => { if (a.state === "진행 중") setState(a,"완료"); }); } },
  { no:"④", name:"아이디어 10개", note:"기획 1팀이 소재와 후킹 카피를 냅니다.",
-   enter(){ workAt(team("기획 1팀")); }, dwell:5600 },
+   scenes: () => [ sceneWork(team("기획 1팀"), 5600) ] },
  { no:"⑤", name:"검수", note:"백승호 팀이 근거·중복·톤을 봅니다. 반려 사유를 남깁니다.",
-   enter(){ workAt(team("검수팀")); team("기획 1팀").forEach(a => setState(a,"대기")); }, dwell:5600 },
- { no:"⑥", name:"TOP 3 선정", note:"기획 1팀장과 검수 팀장이 회의실에서 3개를 고릅니다.",
-   enter(){ const g=[byName["문태현"], byName["백승호"]]; g.forEach(a=>setState(a,"진행 중")); seatMeeting(g);
-            g.forEach((a,i)=>setTimeout(()=>say(a,i),1500+i*1500)); }, dwell:6000 },
- { no:"⑦", name:"대표 승인 대기", note:"AI는 여기서 멈춥니다. 대표가 누르기 전까지 ⑧로 넘어가지 않습니다.",
-   enter(){ const g=[byName["문태현"], byName["백승호"], byName["정세라"]];
-            g.forEach(a => setState(a,"승인 대기"));
-            seatMeeting(g);
-            g.forEach(a => setTimeout(() => { a.bubble = "확인해주세요"; a.bubT = 999999; }, 1500));
-            blocking = true; renderApproval(g); },
-   tick(){ return approvalChoice !== null; },
-   exit(){ const g=[byName["문태현"], byName["백승호"], byName["정세라"]];
-           g.forEach(a => { a.bubble = null; a.bubT = 0; });
-           blocking = false; renderApproval(null);
-           if (approvalChoice === "승인"){ g.forEach(a => setState(a,"완료")); sitAll(g); }
-           else { g.forEach(a => setState(a,"대기")); sitAll(g); } } },
- { no:"⑧", name:"대본 작성", note:"기획 2팀이 대본을 쓰고, 조민우가 영상 제작팀에 직접 전달합니다.",
-   enter(){ workAt(team("기획 2팀"));
-            setTimeout(() => { const a = byName["조민우"];
-              const t = freeTileIn("영상 제작팀");
-              if (t) sendTo(a, t.x, t.y, x => { x.anim="talk"; say(byName["남기훈"],0); say(x,0); });
-            }, 3200); },
-   dwell:8000,
-   exit(){ sitAll(team("기획 2팀")); team("기획 2팀").forEach(a=>setState(a,"완료")); } },
+   enter(){ team("기획 1팀").forEach(a => setState(a,"대기")); },
+   scenes: () => [ sceneWork(team("검수팀"), 5600) ] },
+ { no:"⑥", name:"TOP 3 선정",
+   note:"세 팀장이 회의실로 걸어가 마주 앉고, 한 명씩 한 줄만 말한 뒤 자리로 돌아갑니다.",
+   scenes: () => [ sceneMeeting(APPROVERS(), {state:"진행 중", lineIdx:0}) ] },
+ { no:"⑦", name:"대표 승인 대기",
+   note:"담당자들이 회의실에 앉아 대기합니다. 대표가 누르기 전까지 ⑧로 넘어가지 않습니다.",
+   scenes: () => [ sceneMeeting(APPROVERS(), {
+       state:"승인 대기", lineIdx:0, hold:true, gate: () => approvalChoice !== null }) ],
+   exit(){ const g = APPROVERS();
+           g.forEach(a => { a.bubble = null; a.bubT = 0;
+             setState(a, approvalChoice === "승인" ? "완료" : "대기"); }); } },
+ { no:"⑧", name:"대본 작성", note:"기획 2팀이 대본을 쓰고, 조민우가 영상 제작팀으로 직접 걸어가 전달합니다.",
+   scenes: () => [
+     sceneWork(team("기획 2팀"), 5000),
+     sceneDeliver(byName["조민우"], "영상 제작팀", byName["남기훈"], 3200)
+   ],
+   exit(){ team("기획 2팀").forEach(a => setState(a,"완료")); } },
  { no:"⑨", name:"제작 (영상·이미지 동시)", note:"두 제작팀이 동시에 텍스트 정리본을 만듭니다.",
-   enter(){ workAt(team("영상 제작팀")); workAt(team("이미지 제작팀")); }, dwell:6400 },
- { no:"⑩", name:"결과물 저장 · ⑪ 성과 기록",
-   note:"원본은 건드리지 않고 사본으로 저장합니다. 양지호는 통계 미연동으로 계속 멈춰 있습니다.",
-   enter(){ team("영상 제작팀").concat(team("이미지 제작팀")).forEach(a=>setState(a,"완료"));
-            workAt(team("성과리뷰팀").filter(a => a.state !== "연동 대기")); }, dwell:5600 },
- { no:"⑫", name:"비서실 브리핑", note:"은수현이 대표실로 이동해 최종 보고합니다.",
-   enter(){ setState(byName["표지우"],"진행 중"); byName["표지우"].anim="type";
-            const a = byName["은수현"]; setState(a,"진행 중");
-            const t = freeTileIn("대표실");
-            if (t) sendTo(a, t.x, t.y, x => { x.anim="talk"; say(x,0); setTimeout(()=>say(x,1),3000); }); },
-   dwell:9000,
+   scenes: () => [ sceneWork(team("영상 제작팀").concat(team("이미지 제작팀")), 6400) ] },
+ { no:"⑩", name:"결과물 저장", note:"원본은 건드리지 않고 사본으로 저장합니다.",
+   scenes: () => [ sceneWork([byName["남기훈"], byName["유가람"]], 3600) ],
+   exit(){ team("영상 제작팀").concat(team("이미지 제작팀")).forEach(a => setState(a,"완료")); } },
+ { no:"⑪", name:"성과 기록", note:"양지호는 통계가 미연동이라 수치를 비워둔 채 멈춰 있습니다.",
+   scenes: () => [ sceneWork(team("성과리뷰팀"), 5200, {keepLinkWait:true}) ] },
+ { no:"⑫", name:"비서실 브리핑", note:"은수현이 대표실로 걸어가 최종 보고합니다.",
+   enter(){ setState(byName["표지우"], "진행 중"); },
+   scenes: () => [
+     sceneWork([byName["표지우"]], 600),
+     sceneDeliver(byName["은수현"], "대표실", null, 4200)
+   ],
    exit(){ agents.forEach(a => { if (a.state !== "연동 대기") setState(a,"완료"); });
            sitAll(agents.filter(a => a.state !== "연동 대기")); } },
  { no:"—", name:"업무 종료", note:"연동 대기 4명을 빼고 전원 완료했습니다. 다시 시작을 누르면 07:00부터 반복합니다.",
@@ -516,21 +610,35 @@ function enterPhase(i){
   phase = i; phaseT = 0; approvalChoice = null;
   const p = PHASES[i];
   if (p.enter) p.enter();
+  p._scenes = p.scenes ? p.scenes() : null;    // 단계마다 장면을 새로 만든다 (수정 요청·다시 시작 대비)
+  p._si = 0;
   ui.stepNo.textContent = p.no; ui.stepName.textContent = p.name; ui.stepNote.textContent = p.note;
   [...ui.ticks.children].forEach((el,k) => {
-    el.className = k < i ? "on" : (k === i ? (i===7 ? "cur" : "on") : "");
+    el.className = k < i ? "on" : (k === i ? (PHASES[k].no === "⑦" ? "cur" : "on") : "");
   });
 }
+const IDX = no => PHASES.findIndex(p => p.no === no);
+
 function advance(dt){
   const p = PHASES[phase];
   phaseT += dt;
   let done = false;
   if (p.tick) done = p.tick(dt);
-  else if (p.dwell) done = phaseT > p.dwell;   // 자율 행동으로 걷는 직원이 있어도 단계는 시간으로 넘어간다
+  else if (p._scenes){
+    const sc = p._scenes[p._si];
+    const was = blocking;
+    blocking = !!sc.holding;
+    if (blocking && !was) renderApproval(sc.roster);   // 다 앉아서 말까지 끝낸 뒤에 결재창을 연다
+    if (!blocking && was) renderApproval(null);
+    if (sc.update(dt)){
+      p._si++;
+      if (p._si >= p._scenes.length) done = true;
+    }
+  }
   if (done && phase < PHASES.length - 1){
     if (p.exit) p.exit();
-    enterPhase(approvalChoice === "폐기" ? PHASES.length-2
-             : approvalChoice === "수정 요청" ? 4 : phase + 1);
+    enterPhase(approvalChoice === "폐기" ? IDX("⑫")
+             : approvalChoice === "수정 요청" ? IDX("④") : phase + 1);
   }
 }
 
@@ -540,6 +648,7 @@ function autonomy(dt){
   if (phase === 0) return;                     // 출근 중에는 딴짓하지 않는다
   for (const a of agents){
     if (!a.spawned || a.path.length || a.t < 1) continue;
+    if (a.inMeeting) continue;                 // 회의 참석자는 자율 행동을 하지 않는다
     // 집중 모드는 전원 복귀. 단 결재 대기자는 사규 ⑦대로 회의실에 남는다
     if (focusMode){
       if (a.state === "승인 대기") continue;
@@ -557,8 +666,16 @@ function autonomy(dt){
       const t = freeTileIn("라운지");
       if (t){ sendTo(a, t.x, t.y, x => { x.anim = "talk"; say(x, 1); }); a.wander = true; }
     } else if (roll < .34){                               // ③ 같은 팀원과 짧은 대화
-      const mates = team(a.team).filter(m => m !== a && !m.path.length && m.state !== "진행 중");
-      if (mates.length){ const m = mates[0]; a.anim = "talk"; m.anim = "talk"; say(a,0); setTimeout(()=>say(m,1), 1600); }
+      // 옆자리에 실제로 앉아 있는 사람하고만 한다 — 회의 중이거나 결재 대기인 사람은 부르지 않는다
+      const mates = team(a.team).filter(m =>
+        m !== a && !m.path.length && m.t >= 1 && !m.inMeeting &&
+        m.state !== "진행 중" && m.state !== "승인 대기" &&
+        Math.abs(m.x - a.x) + Math.abs(m.y - a.y) <= 4);
+      if (mates.length){
+        const m = mates[(Math.random()*mates.length)|0];
+        a.anim = "talk"; m.anim = "talk";
+        say(a, 0); m.replyT = 1500;                        // 상대는 잠시 뒤에 받아친다
+      } else { say(a, 0); }
     } else if (roll < .5){ say(a, 0); }                    // ① 혼잣말
   }
 }
@@ -820,12 +937,9 @@ function renderApproval(list){
      </div>`;
   ui.apprBody.querySelectorAll("[data-ap]").forEach(b =>
     b.onclick = () => { approvalChoice = b.dataset.ap;
-      if (approvalChoice === "보류"){                 // 보류는 결재를 끝내지 않는다 — 안건이 그대로 남는다
+      if (approvalChoice === "보류"){   // 보류는 결정이 아니다 — 담당자는 회의실에서 계속 기다린다
         approvalChoice = null;
-        ui.stepNote.textContent = "보류했습니다. 담당자는 자리로 돌아가 대기하고, 안건은 그대로 남습니다.";
-        const g = [byName["문태현"], byName["백승호"], byName["정세라"]];
-        g.forEach(a => { a.bubble = null; a.bubT = 0; a.state = "대기"; });
-        sitAll(g);
+        ui.stepNote.textContent = "보류했습니다. 담당자 3명은 회의실에서 계속 기다립니다.";
         return;
       }
       ui.stepNote.textContent = `대표 결정: ${approvalChoice}`; });
@@ -871,7 +985,7 @@ function reset(){
     a.x = ENTRY[0]; a.y = ENTRY[1]; a.px = a.x; a.py = a.y; a.prev = {x:a.x,y:a.y};
     a.t = 1; a.path = []; a.goal = null; a.state = "대기"; a.anim = "sit";
     a.spawned = false; a.bubble = null; a.bubT = 0; a.wander = false; a.idleT = 0;
-    a.linkReason = null; a.stuck = 0; a.onArrive = null;
+    a.linkReason = null; a.stuck = 0; a.onArrive = null; a.inMeeting = false; a.repathT = 0; a.replyT = 0;
   });
   simMin = 0; pathCalls = 0; detours = 0; blocking = false; approvalChoice = null;
   selected = null; renderWho(null); renderApproval(null);
@@ -899,7 +1013,10 @@ function loop(now){
     stepAgents(dt);
     advance(dt);
     autonomy(dt);
-    for (const a of agents){ if (a.bubT > 0){ a.bubT -= dt; if (a.bubT <= 0) a.bubble = null; } }
+    for (const a of agents){
+      if (a.bubT > 0){ a.bubT -= dt; if (a.bubT <= 0) a.bubble = null; }
+      if (a.replyT > 0){ a.replyT -= dt; if (a.replyT <= 0 && !a.inMeeting) say(a, 1); }
+    }
   }
   const hh = 7 + Math.floor(simMin/60), mm = Math.floor(simMin%60);
   ui.clock.textContent = String(hh).padStart(2,"0") + ":" + String(mm).padStart(2,"0");
